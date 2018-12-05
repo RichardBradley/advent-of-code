@@ -1,4 +1,4 @@
-package day1
+package y2018.day1
 
 import scala.collection.mutable
 

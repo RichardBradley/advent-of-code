@@ -1,7 +1,6 @@
-package day4;
+package y2018.day4;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 
 import java.util.ArrayList;
 import java.util.Arrays;

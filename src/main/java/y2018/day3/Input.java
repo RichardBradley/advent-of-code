@@ -1,4 +1,4 @@
-package day3;
+package y2018.day3;
 
 import com.google.common.base.Preconditions;
 

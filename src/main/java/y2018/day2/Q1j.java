@@ -1,4 +1,4 @@
-package day2;
+package y2018.day2;
 
 import java.util.Map;
 import java.util.stream.Collectors;
