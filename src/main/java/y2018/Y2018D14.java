@@ -27,7 +27,7 @@ public class Y2018D14 {
 
         Stopwatch sw = Stopwatch.createStarted();
         System.out.println(countRecipesUntil("327901"));
-        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS));
+        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
 
     private static int countRecipesUntil(String pattern) {
