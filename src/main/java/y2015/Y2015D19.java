@@ -1,19 +1,20 @@
 package y2015;
 
-import lombok.AllArgsConstructor;
-import lombok.Value;
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 import java.util.*;
-import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2015D19 {
     public static void main(String[] args) throws Exception {
+        Stopwatch sw = Stopwatch.createStarted();
 
         // 1
         assertThat(countPossibleTargets(testReplacements, "HOH")).isEqualTo(4);
@@ -21,13 +22,15 @@ public class Y2015D19 {
 
         System.out.println(countPossibleTargets(replacements, medicineMolecule));
 
-        /// qq too slow -- maybe look for unique paths??
-
         // 2
-        assertThat(countStepsToGenerate(testReplacements, "HOH")).isEqualTo(3);
-        assertThat(countStepsToGenerate(testReplacements, "HOHOHO")).isEqualTo(6);
 
-        System.out.println(countStepsToGenerate(replacements, medicineMolecule));
+        assertThat(countStepsToGenerate3(testReplacements, "HOH")).isEqualTo(3);
+        assertThat(countStepsToGenerate3(testReplacements, "HOHOHO")).isEqualTo(6);
+
+        System.out.println(countStepsToGenerate3(replacements, medicineMolecule));
+
+        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+
     }
 
     private static int countPossibleTargets(String[] replacements, String start) {
@@ -45,72 +48,28 @@ public class Y2015D19 {
         return targets.size();
     }
 
-    // qq do A* search, heuristic is number of different letters...
-
-    private static int countStepsToGenerate(String[] replacementsSpec, String medicineMolecule) {
+    private static int countStepsToGenerate3(String[] replacementsSpec, String medicineMolecule) {
         List<Replacement> replacements = parse(replacementsSpec);
-
-        // https://en.wikipedia.org/wiki/A*_search_algorithm
-
-        // The set of nodes already evaluated
-        Set<String> closedSet = new HashSet<>();
-        // The set of currently discovered nodes that are not evaluated yet.
-        PriorityQueue<NodeWithDistance> openSet = new PriorityQueue<>();
-        openSet.add(new NodeWithDistance(medicineMolecule, 0));
-
-        while (true) {
-            NodeWithDistance current = openSet.poll();
-            if ("e".equals(current.value)) {
-                return current.stepsFromStart;
-            }
-
-            if (!closedSet.add(current.value)) {
-                continue;
-            }
-
-            for(String neighbor : generateReplacements(replacements, current.value)) {
-                if (!closedSet.contains(neighbor)) {
-                    NodeWithDistance neighbourNode = new NodeWithDistance(neighbor, 1 + current.stepsFromStart);
-                    // DODGY: assume no back-tracking...
-                    if (neighbourNode.estTotalDistance <= current.estTotalDistance + 1) {
-                        openSet.add(neighbourNode);
-                    }
-                }
-            };
-        }
-
-//        Set<String> sources = Collections.singleton(medicineMolecule);
-//        Set<String> reachedMols;
-//        List<Replacement> replacements = parse(replacementsSpec);
-//
-//        // Replace backwards for a shorter search
-//        for (int step = 1; ; step++) {
-//            reachedMols = new HashSet<>();
-//            for (String source : sources) {
-//                for (Replacement replacement : replacements) {
-//                    Matcher toMatcher = replacement.toPat.matcher(source);
-//                    while (toMatcher.find()) {
-//                        String reached = source.substring(0, toMatcher.start()) +
-//                                replacement.from +
-//                                source.substring(toMatcher.end());
-//                        if ("e".equals(reached)) {
-//                            return step;
-//                        }
-//                        reachedMols.add(reached);
-//                    }
-//                }
-//            }
-//
-//            sources = reachedMols;
-//            System.out.println(String.format(
-//                    "Done step %s. Reached %s. Min length %s",
-//                    step,
-//                    reachedMols.size(),
-//                    reachedMols.stream().mapToInt(x -> x.length()).min().getAsInt()));
-//        }
+        return countStepsToGenerate3(replacements, medicineMolecule);
     }
 
-    private static Iterable<String> generateReplacements(List<Replacement> replacements, String value) {
+    // Depth first search, with random paths
+    private static int countStepsToGenerate3(List<Replacement> replacements, String medicineMolecule) {
+        if ("e".equals(medicineMolecule)) {
+            return 0;
+        }
+        Collections.shuffle(replacements);
+        for (String generated : generateReverseReplacements(replacements, medicineMolecule)) {
+            int steps = countStepsToGenerate3(replacements, generated);
+            if (steps == -1) {
+                continue; // backtrack
+            }
+            return 1 + steps;
+        }
+        return -1;
+    }
+
+    private static Iterable<String> generateReverseReplacements(List<Replacement> replacements, String value) {
         List<String> acc = new ArrayList<>();
         for (Replacement replacement : replacements) {
             Matcher toMatcher = replacement.toPat.matcher(value);
@@ -121,24 +80,6 @@ public class Y2015D19 {
             }
         }
         return acc;
-    }
-
-    private static class NodeWithDistance implements Comparable<NodeWithDistance> {
-        String value;
-        int stepsFromStart;
-        int estTotalDistance;
-
-        NodeWithDistance(String value, int stepsFromStart) {
-            this.value = value;
-            this.stepsFromStart = stepsFromStart;
-            int heuristicDistance = 2 * value.length();
-            estTotalDistance = stepsFromStart + heuristicDistance;
-        }
-
-        @Override
-        public int compareTo(NodeWithDistance o) {
-            return Integer.compare(this.estTotalDistance, o.estTotalDistance);
-        }
     }
 
     private static List<Replacement> parse(String[] replacements) {
