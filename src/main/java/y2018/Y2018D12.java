@@ -3,7 +3,6 @@ package y2018;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import lombok.AllArgsConstructor;
-import org.apache.logging.log4j.core.util.Integers;
 
 import java.util.*;
 import java.util.regex.Matcher;
