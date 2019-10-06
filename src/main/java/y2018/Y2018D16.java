@@ -31,23 +31,23 @@ public class Y2018D16 {
 
         // 2
         Map<Integer, Opcode> opcodeMappings = determineOpcodes(sampleOps);
-        int[] registers = eval(opcodeMappings, Y2018D16input.testProgram);
+        long[] registers = eval(opcodeMappings, Y2018D16input.testProgram);
         System.out.println("What value is contained in register 0 after executing the test program?");
         System.out.println(registers[0]);
 
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
 
-    private static int[] eval(Map<Integer, Opcode> opcodeMappings, String[] instructions) {
-        int[] registers = new int[16];
+    private static long[] eval(Map<Integer, Opcode> opcodeMappings, String[] instructions) {
+        long[] registers = new long[16];
         for (String instruction : instructions) {
             String[] items = instruction.split(" ");
             checkState(items.length == 4);
-            OpcodeWithArgs opcodeWithArgs = new OpcodeWithArgs();
-            opcodeWithArgs.op = opcodeMappings.get(Integer.parseInt(items[0]));
-            opcodeWithArgs.a = Integer.parseInt(items[1]);
-            opcodeWithArgs.b = Integer.parseInt(items[2]);
-            opcodeWithArgs.c = Integer.parseInt(items[3]);
+            OpcodeWithArgs opcodeWithArgs = new OpcodeWithArgs(
+                    opcodeMappings.get(Integer.parseInt(items[0])),
+                    Integer.parseInt(items[1]),
+                    Integer.parseInt(items[2]),
+                    Integer.parseInt(items[3]));
             eval(opcodeWithArgs, registers);
         }
         return registers;
@@ -91,12 +91,13 @@ public class Y2018D16 {
 
     static Set<Opcode> possibleMatchingOpCodes(SampleOp sampleOp) {
         Set<Opcode> matching = EnumSet.noneOf(Opcode.class);
-        OpcodeWithArgs opcodeWithArgs = new OpcodeWithArgs();
-        opcodeWithArgs.a = sampleOp.op[1];
-        opcodeWithArgs.b = sampleOp.op[2];
-        opcodeWithArgs.c = sampleOp.op[3];
+        OpcodeWithArgs opcodeWithArgs = new OpcodeWithArgs(
+                null,
+                sampleOp.op[1],
+                sampleOp.op[2],
+                sampleOp.op[3]);
         for (Opcode op : Opcode.values()) {
-            int[] registers = sampleOp.beforeRegisters.clone();
+            long[] registers = sampleOp.beforeRegisters.clone();
             opcodeWithArgs.op = op;
             eval(opcodeWithArgs, registers);
             if (Arrays.equals(registers, sampleOp.afterRegisters)) {
@@ -106,11 +107,54 @@ public class Y2018D16 {
         return matching;
     }
 
+    @AllArgsConstructor
     static class OpcodeWithArgs {
         Opcode op;
         int a;
         int b;
         int c;
+
+        public String toHumanReadable(int ipcIdx) {
+            String[] registerNames = new String[]{"a", "b", "c", "d", "e", "f"};
+            registerNames[ipcIdx] = "IPC";
+
+            switch (op) {
+                case addr: // (add register) stores into register C the result of adding register A and register B.
+                    return (registerNames[c] + " = " + registerNames[a] + " + " + registerNames[b]);
+                case addi: // (add immediate) stores into register C the result of adding register A and value B.
+                    return (registerNames[c] + " = " + registerNames[a] + " + " + b);
+                case mulr: // (multiply register) stores into register C the result of multiplying register A and register B.
+                    return (registerNames[c] + " = " + registerNames[a] + " * " + registerNames[b]);
+                case muli: // (multiply immediate) stores into register C the result of multiplying register A and value B.
+                    return (registerNames[c] + " = " + registerNames[a] + " * " + b);
+                case banr: // (bitwise AND register) stores into register C the result of the bitwise AND of register A and register B.
+                    return (registerNames[c] + " = " + registerNames[a] + " & " + registerNames[b]);
+                case bani: // (bitwise AND immediate) stores into register C the result of the bitwise AND of register A and value B.
+                    return (registerNames[c] + " = " + registerNames[a] + " & " + b);
+                case borr: // (bitwise OR register) stores into register C the result of the bitwise OR of register A and register B.
+                    return (registerNames[c] + " = " + registerNames[a] + " | " + registerNames[b]);
+                case bori: // (bitwise OR immediate) stores into register C the result of the bitwise OR of register A and value B.
+                    return (registerNames[c] + " = " + registerNames[a] + " | " + b);
+                case setr: // (set register) copies the contents of register A into register C. (Input B is ignored.)
+                    return (registerNames[c] + " = " + registerNames[a]);
+                case seti: // (set immediate) stores value A into register C. (Input B is ignored.)
+                    return (registerNames[c] + " = " + a);
+                case gtir: // (greater-than immediate/register) sets register C to 1 if value A is greater than register B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + a + " > " + registerNames[b] + " ? 1 : 0)");
+                case gtri: // (greater-than register/immediate) sets register C to 1 if register A is greater than value B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + registerNames[a] + " > " + b + " ? 1 : 0)");
+                case gtrr: // (greater-than register/register) sets register C to 1 if register A is greater than register B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + registerNames[a] + " > " + registerNames[b] + " ? 1 : 0)");
+                case eqir: // (equal immediate/register) sets register C to 1 if value A is equal to register B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + a + " == " + registerNames[b] + " ? 1 : 0)");
+                case eqri: // (equal register/immediate) sets register C to 1 if register A is equal to value B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + registerNames[a] + " == " + b + " ? 1 : 0)");
+                case eqrr: // (equal register/register) sets register C to 1 if register A is equal to register B. Otherwise, register C is set to 0.
+                    return (registerNames[c] + " = (" + registerNames[a] + " == " + registerNames[b] + " ? 1 : 0)");
+                default:
+                    throw new IllegalArgumentException("" + op);
+            }
+        }
     }
 
     enum Opcode {
@@ -132,7 +176,7 @@ public class Y2018D16 {
         eqrr; // (equal register/register) sets register C to 1 if register A is equal to register B. Otherwise, register C is set to 0.
     }
 
-    static void eval(OpcodeWithArgs o, int[] registers) {
+    static void eval(OpcodeWithArgs o, long[] registers) {
         switch (o.op) {
             case addr:
                 registers[o.c] = registers[o.a] + registers[o.b];
@@ -202,9 +246,9 @@ public class Y2018D16 {
 
     @AllArgsConstructor
     static class SampleOp {
-        int[] beforeRegisters;
+        long[] beforeRegisters;
         int[] op;
-        int[] afterRegisters;
+        long[] afterRegisters;
     }
 
     static List<SampleOp> parseSampleOps(String... input) {
@@ -222,9 +266,9 @@ public class Y2018D16 {
             checkState(m3.matches());
             checkState((i + 3 >= input.length) || input[i + 3].isEmpty());
             acc.add(new SampleOp(
-                    new int[]{Integer.parseInt(m1.group(1)), Integer.parseInt(m1.group(2)), Integer.parseInt(m1.group(3)), Integer.parseInt(m1.group(4)),},
+                    new long[]{Integer.parseInt(m1.group(1)), Integer.parseInt(m1.group(2)), Integer.parseInt(m1.group(3)), Integer.parseInt(m1.group(4)),},
                     new int[]{Integer.parseInt(m2.group(1)), Integer.parseInt(m2.group(2)), Integer.parseInt(m2.group(3)), Integer.parseInt(m2.group(4)),},
-                    new int[]{Integer.parseInt(m3.group(1)), Integer.parseInt(m3.group(2)), Integer.parseInt(m3.group(3)), Integer.parseInt(m3.group(4)),}
+                    new long[]{Integer.parseInt(m3.group(1)), Integer.parseInt(m3.group(2)), Integer.parseInt(m3.group(3)), Integer.parseInt(m3.group(4)),}
             ));
         }
         return acc;

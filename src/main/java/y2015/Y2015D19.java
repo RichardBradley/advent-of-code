@@ -1,8 +1,6 @@
 package y2015;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
