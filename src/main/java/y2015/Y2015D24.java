@@ -3,7 +3,6 @@ package y2015;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -11,8 +10,6 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2015D24 {
-
-    static Instant nextLog = Instant.now().plusSeconds(10);
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
