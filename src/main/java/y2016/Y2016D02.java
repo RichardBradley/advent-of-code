@@ -1,0 +1,99 @@
+package y2016;
+
+import com.google.common.base.Stopwatch;
+
+import java.util.concurrent.TimeUnit;
+
+import static com.google.common.truth.Truth.assertThat;
+
+public class Y2016D02 {
+
+    public static void main(String[] args) throws Exception {
+        Stopwatch sw = Stopwatch.createStarted();
+
+        // 1
+        assertThat(getCodeFor(exampleInput,
+                normalPad))
+                .isEqualTo("1985");
+
+        System.out.println(getCodeFor(input, normalPad));
+
+        // 2
+        assertThat(getCodeFor(exampleInput,
+                actualPad))
+                .isEqualTo("5DB3");
+
+        System.out.println(getCodeFor(input, actualPad));
+
+
+        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+    }
+
+    static String getCodeFor(String input, String[] pad) {
+        // start at '5':
+        int x, y;
+        for (y = 0; ; y++) {
+            x = pad[y].indexOf('5');
+            if (x >= 0) {
+                break;
+            }
+        }
+        StringBuilder acc = new StringBuilder();
+
+        for (String line : input.split("\n")) {
+            for (char dir : line.toCharArray()) {
+                switch (dir) {
+                    case 'U':
+                        if (y > 0 && ' ' != pad[y - 1].charAt(x)) {
+                            y--;
+                        }
+                        break;
+                    case 'D':
+                        if (y < pad.length - 1 && ' ' != pad[y + 1].charAt(x)) {
+                            y++;
+                        }
+                        break;
+                    case 'L':
+                        if (x > 0 && ' ' != pad[y].charAt(x - 1)) {
+                            x--;
+                        }
+                        break;
+                    case 'R':
+                        if (x < pad[y].length() - 1 && ' ' != pad[y].charAt(x + 1)) {
+                            x++;
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            }
+            acc.append(pad[y].charAt(x));
+        }
+
+        return acc.toString();
+    }
+
+    static String[] normalPad = new String[]{
+            "123",
+            "456",
+            "789"};
+
+    static String[] actualPad = new String[]{
+            "  1  ",
+            " 234 ",
+            "56789",
+            " ABC ",
+            "  D  "};
+
+    static String exampleInput = "ULL\n" +
+            "RRDDD\n" +
+            "LURDL\n" +
+            "UUUUD";
+
+    static String input = "LDUDDRUDRRURRRRDRUUDULDLULRRLLLUDDULRDLDDLRULLDDLRUURRLDUDDDDLUULUUDDDDLLLLLULLRURDRLRLRLLURDLLDDUULUUUUDLULLRLUUDDLRDRRURRLURRLLLRRDLRUDURRLRRRLULRDLUDRDRLUDDUUULDDDDDURLDULLRDDRRUDDDDRRURRULUDDLLRRDRURDLLLLLUUUDLULURLULLDRLRRDDLUDURUDRLRURURLRRDDLDUULURULRRLLLDRURDULRDUURRRLDLDUDDRLURRDRDRRLDLRRRLRURDRLDRUDLURRUURDLDRULULURRLDLLLUURRULUDDDRLDDUDDDRRLRDUDRUUDDULRDDULDDURULUDLUDRUDDDLRRRRRDLULDRLRRRRUULDUUDRRLURDLLUUDUDDDLUUURDRUULRURULRLLDDLLUDLURRLDRLDDDLULULLURLULRDLDRDDDLRDUDUURUUULDLLRDRUDRDURUUDDLRRRRLLLUULURRURLLDDLDDD\n" +
+            "DRURURLLUURRRULURRLRULLLURDULRLRRRLRUURRLRRURRRRUURRRLUDRDUDLUUDULURRLDLULURRLDURLUUDLDUDRUURDDRDLLLDDRDDLUUDRDUDDRRDLDUDRLDDDRLLDDLUDRULRLLURLDLURRDRUDUDLDLULLLRDLLRRDULLDRURRDLDRURDURDULUUURURDLUDRRURLRRLDULRRDURRDRDDULLDRRRLDRRURRRRUURDRLLLRRULLUDUDRRDDRURLULLUUDDRLDRRDUDLULUUDRDDDDLRLRULRLRLLDLLRRDDLDRDURRULLRLRRLULRULDDDRDRULDRUUDURDLLRDRURDRLRDDUDLLRUDLURURRULLUDRDRDURLLLDDDRDRURRDDRLRRRDLLDDLDURUULURULRLULRLLURLUDULDRRDDLRDLRRLRLLULLDDDRDRU\n" +
+            "URUUDUDRDDRDRRRDLLUDRUDRUUUURDRRDUDUULDUDLLUDRRUDLLRDLLULULDRRDDULDRLDLDDULLDDRDDDLRLLDLLRDUUDUURLUDURDRRRRLRRLDRRUULLDLDLRDURULRURULRRDRRDDUUURDURLLDDUUDLRLDURULURRRDRRUUUDRDDLRLRRLLULUDDRRLRRRRLRDRUDDUULULRRURUURURRLRUDLRRUUURUULLULULRRDDULDRRLLLDLUDRRRLLRDLLRLDUDDRRULULUDLURLDRDRRLULLRRDRDLUURLDDURRLDRLURULDLDRDLURRDRLUUDRUULLDRDURLLDLRUDDULLLLDLDDDLURDDUDUDDRLRDDUDDURURLULLRLUDRDDUDDLDRUURLDLUUURDUULRULLDDDURULDDLLD\n" +
+            "LRRLLRURUURRDLURRULDDDLURDUURLLDLRRRRULUUDDLULLDLLRDLUDUULLUDRLLDRULDDURURDUUULRUDRLLRDDDURLRDRRURDDRUDDRRULULLLDLRLULLDLLDRLLLUDLRURLDULRDDRDLDRRDLUUDDLURDLURLUDLRDLDUURLRRUULDLURULUURULLURLDDURRURDRLUULLRRLLLDDDURLURUURLLLLDLLLUDLDLRDULUULRRLUUUUDLURRURRULULULRURDDRRRRDRUDRURDUDDDDUDLURURRDRRDRUDRLDLDDDLURRRURRUDLDURDRLDLDLDDUDURLUDUUDRULLRLLUUDDUURRRUDURDRRUURLUDRRUDLUDDRUUDLULDLLDLRUUDUULLDULRRLDRUDRRDRLUUDDRUDDLLULRLULLDLDUULLDRUUDDUDLLLLDLDDLDLURLDLRUUDDUULLUDUUDRUDLRDDRDLDRUUDUDLLDUURRRLLLLRLLRLLRLUUDULLRLURDLLRUUDRULLULRDRDRRULRDLUDDURRRRURLLRDRLLDRUUULDUDDLRDRD\n" +
+            "DDLRRULRDURDURULLLLRLDDRDDRLLURLRDLULUDURRLUDLDUDRDULDDULURDRURLLDRRLDURRLUULLRUUDUUDLDDLRUUDRRDDRLURDRUDRRRDRUUDDRLLUURLURUDLLRRDRDLUUDLUDURUUDDUULUURLUDLLDDULLUURDDRDLLDRLLDDDRRDLDULLURRLDLRRRLRRURUUDRLURURUULDURUDRRLUDUDLRUDDUDDRLLLULUDULRURDRLUURRRRDLLRDRURRRUURULRUDULDULULUULULLURDUDUDRLDULDRDDULRULDLURLRLDDDDDDULDRURRRRDLLRUDDRDDLUUDUDDRLLRLDLUDRUDULDDDRLLLLURURLDLUUULRRRUDLLULUUULLDLRLDLLRLRDLDULLRLUDDDRDRDDLULUUR";
+}
