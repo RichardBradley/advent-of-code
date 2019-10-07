@@ -20,7 +20,8 @@ public class Y2015D24 {
         // 1
         assertThat(
                 getQuantumEntanglementOfTheFirstGroupOfPackagesInTheIdealConfiguration4(
-                        example))
+                        example,
+                        3))
                 .isEqualTo(99);
 
         System.out.println("Example took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
@@ -28,20 +29,25 @@ public class Y2015D24 {
 
         System.out.println(
                 getQuantumEntanglementOfTheFirstGroupOfPackagesInTheIdealConfiguration4(
-                        input));
+                        input,
+                        3));
 
-//        // 2
-//        System.out.println("########");
-//        System.out.println(run(parse(input), new int[]{1, 0}));
+        // 2
+        System.out.println("########");
+        System.out.println(
+                getQuantumEntanglementOfTheFirstGroupOfPackagesInTheIdealConfiguration4(
+                        input,
+                        4));
 
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
 
     }
 
-    static long getQuantumEntanglementOfTheFirstGroupOfPackagesInTheIdealConfiguration4(int[] weights) {
+    static long getQuantumEntanglementOfTheFirstGroupOfPackagesInTheIdealConfiguration4(
+            int[] weights, int compartmentCount) {
         int sum = Arrays.stream(weights).sum();
-        assertThat(sum % 3).isEqualTo(0);
-        int targetCompartmentSum = sum / 3;
+        assertThat(sum % compartmentCount).isEqualTo(0);
+        int targetCompartmentSum = sum / compartmentCount;
 
         long smallestValidQuantumEntanglement = Long.MAX_VALUE;
 
@@ -56,6 +62,7 @@ public class Y2015D24 {
                     combSumWeight += weights[combIndexes[i]];
                 }
 
+                // Don't bother to check if the packages are divisible into the other compartments!
                 if (combSumWeight == targetCompartmentSum) {
                     validGroupCount++;
 
