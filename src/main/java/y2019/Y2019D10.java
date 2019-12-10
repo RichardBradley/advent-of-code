@@ -18,14 +18,15 @@ public class Y2019D10 {
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
+        angleTests();
+
         // 1
         assertThat(bestStationLocFor(example1)).isEqualTo("3,4 8");
         System.out.println("example ok");
-        System.out.println(bestStationLocFor(input));
+        System.out.println(bestStationLocFor(input)); // 25,31 329
 
         // 2
         System.out.println("part 2");
-        angleTests();
         // System.out.println(printNthToVaporise(example21, 20, 8, 3));
         // System.out.println(printNthToVaporise(example22, 200, 11, 13));
         System.out.println(printNthToVaporise(input, 200, 25, 31)); // 512
@@ -47,69 +48,6 @@ public class Y2019D10 {
         Double a2 = getAngle(6, 10);
         assertThat(a1.equals(a2)).isTrue();
         assertThat(a1.hashCode()).isEqualTo(a2.hashCode());
-    }
-
-    private static String printNthToVaporise(String input, int nth, int stationX, int stationY) {
-        boolean[][] field = parse(input);
-        int height = field.length;
-        int width = field[0].length;
-        SortedMap<Double, SortedSet<Asteriod>> asteroidsByAngle = new TreeMap<>();
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                if (field[y][x]) {
-                    if (!(x == stationX && y == stationY)) {
-                        int dx = x - stationX;
-                        int dy = y - stationY;
-                        Asteriod asteriod = new Asteriod(
-                                new Point(x, y),
-                                Math.sqrt(dx * dx + dy * dy));
-                        double angle = getAngle(dx, dy);
-                        asteroidsByAngle.compute(angle, (k, v) -> {
-                            if (v == null) {
-                                v = new TreeSet<>();
-                            }
-                            v.add(asteriod);
-                            return v;
-                        });
-                    }
-                }
-            }
-        }
-
-        int count = 0;
-        while (true) {
-            for (Map.Entry<Double, SortedSet<Asteriod>> angleAsters : asteroidsByAngle.entrySet()) {
-                SortedSet<Asteriod> asters = angleAsters.getValue();
-                if (!asters.isEmpty()) {
-                    Asteriod first = asters.first();
-                    asters.remove(first);
-                    if (++count == nth) {
-                        return String.format("%sth is %s, output %s", count, first,
-                                100 * first.loc.x + first.loc.y);
-                    }
-                    printf("%s Vaporized %s\n", count, first);
-                }
-            }
-        }
-    }
-
-    private static double getAngle(int dx, int dy) {
-        double angle = Math.atan2(dx, -dy);
-        if (angle < 0) {
-            angle += 2 * Math.PI;
-        }
-        return angle;
-    }
-
-    @Value
-    private static class Asteriod implements Comparable<Asteriod> {
-        Point loc;
-        double dist;
-
-        @Override
-        public int compareTo(Asteriod that) {
-            return Double.compare(this.dist, that.dist);
-        }
     }
 
     private static String bestStationLocFor(String input) {
@@ -144,6 +82,74 @@ public class Y2019D10 {
         return maxVisibleLoc + " " + maxVisible;
     }
 
+    private static String printNthToVaporise(String input, int nth, int stationX, int stationY) {
+        boolean[][] field = parse(input);
+        SortedMap<Double, SortedSet<Asteroid>> asteroidsByAngle = getAsteroidsByAngle(stationX, stationY, field);
+
+        int count = 0;
+        while (true) {
+            for (Map.Entry<Double, SortedSet<Asteroid>> angleAsters : asteroidsByAngle.entrySet()) {
+                SortedSet<Asteroid> asters = angleAsters.getValue();
+                if (!asters.isEmpty()) {
+                    Asteroid first = asters.first();
+                    asters.remove(first);
+                    if (++count == nth) {
+                        return String.format("%sth is %s, output %s", count, first,
+                                100 * first.loc.x + first.loc.y);
+                    }
+                    printf("%s Vaporized %s\n", count, first);
+                }
+            }
+        }
+    }
+
+    private static SortedMap<Double, SortedSet<Asteroid>> getAsteroidsByAngle(int stationX, int stationY, boolean[][] field) {
+        SortedMap<Double, SortedSet<Asteroid>> asteroidsByAngle = new TreeMap<>();
+        int height = field.length;
+        int width = field[0].length;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (field[y][x]) {
+                    if (!(x == stationX && y == stationY)) {
+                        int dx = x - stationX;
+                        int dy = y - stationY;
+                        Asteroid asteroid = new Asteroid(
+                                new Point(x, y),
+                                Math.sqrt(dx * dx + dy * dy));
+                        double angle = getAngle(dx, dy);
+                        asteroidsByAngle.compute(angle, (k, v) -> {
+                            if (v == null) {
+                                v = new TreeSet<>();
+                            }
+                            v.add(asteroid);
+                            return v;
+                        });
+                    }
+                }
+            }
+        }
+        return asteroidsByAngle;
+    }
+
+    private static double getAngle(int dx, int dy) {
+        double angle = Math.atan2(dx, -dy);
+        if (angle < 0) {
+            angle += 2 * Math.PI;
+        }
+        return angle;
+    }
+
+    @Value
+    private static class Asteroid implements Comparable<Asteroid> {
+        Point loc;
+        double dist;
+
+        @Override
+        public int compareTo(Asteroid that) {
+            return Double.compare(this.dist, that.dist);
+        }
+    }
+
     private static void printf(String fmt, Object... args) {
         if (LOG) {
             System.out.printf(fmt, args);
@@ -151,74 +157,8 @@ public class Y2019D10 {
     }
 
     private static int countVisibleFrom(boolean[][] field, int startX, int startY) {
-        int count = 0;
-        int height = field.length;
-        int width = field[0].length;
-        printf("counting visible from (%s,%s)\n", startX, startY);
-        for (int y = 0; y < height; y++) {
-            asteroidLoop:
-            for (int x = 0; x < width; x++) {
-                if (field[y][x]) {
-                    if (!(x == startX && y == startY)) {
-
-                        int dx = x - startX;
-                        int dy = y - startY;
-
-                        // We can see this asteroid if there is no ast
-                        // at (dx',dy') where n * (dx',dy') = (dx, dy)
-                        if (Math.abs(dx) >= Math.abs(dy)) {
-                            for (int i = 1; i < Math.abs(dx); i++) {
-                                int candDX = (dx < 0 ? -i : i);
-                                double candDYd = (double) candDX / ((double) dx) * (double) dy;
-                                double candDYdi = Math.rint(candDYd);
-                                if (candDYd == candDYdi) {
-                                    int candX = startX + candDX;
-                                    int candY = startY + (int) candDYdi;
-                                    if (field[candY][candX]) {
-                                        printf("(%s,%s) blocked by (%s,%s): dx,dy = %s,%s  cdx=%s cdy=%s\n",
-                                                x, y,
-                                                candX, candY,
-                                                dx,
-                                                dy,
-                                                candDX,
-                                                candDYdi);
-
-                                        continue asteroidLoop;
-                                    }
-                                }
-                            }
-                        } else {
-                            for (int i = 1; i < Math.abs(dy); i++) {
-                                int candDY = (dy < 0 ? -i : i);
-                                double candDXd = (double) candDY / ((double) dy) * (double) dx;
-                                double candDXdi = Math.rint(candDXd);
-                                if (candDXd == candDXdi) {
-                                    int candX = startX + (int) candDXdi;
-                                    int candY = startY + candDY;
-                                    if (field[candY][candX]) {
-                                        printf("(%s,%s) blocked by (%s,%s): dx,dy = %s,%s  cdx=%s cdy=%s\n",
-                                                x, y,
-                                                candX, candY,
-                                                dx,
-                                                dy,
-                                                candDXdi,
-                                                candDY);
-
-                                        continue asteroidLoop;
-                                    }
-                                }
-                            }
-                        }
-
-                        printf("(%s,%s) visible\n", x, y);
-                        count++;
-                    }
-                }
-            }
-        }
-        printf("counted %s\n", count);
-
-        return count;
+        SortedMap<Double, SortedSet<Asteroid>> asteroidsByAngle = getAsteroidsByAngle(startX, startY, field);
+        return asteroidsByAngle.size();
     }
 
     private static boolean[][] parse(String input) {
