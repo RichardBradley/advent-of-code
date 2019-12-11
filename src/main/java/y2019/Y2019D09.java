@@ -63,7 +63,7 @@ public class Y2019D09 {
         }
     }
 
-    private static EvalResult evalPartial(ProgramState state, Queue<BigInteger> inputs) {
+    public static EvalResult evalPartial(ProgramState state, Queue<BigInteger> inputs) {
         BigInteger[] program = state.program;
         outer:
         while (true) {
@@ -352,7 +352,7 @@ public class Y2019D09 {
         }
     }
 
-    private static BigInteger[] parse(String spec)  {
+    public static BigInteger[] parse(String spec)  {
         return Arrays.stream(spec.split(" *, *"))
                 .map(BigInteger::new)
                 .toArray(BigInteger[]::new);
