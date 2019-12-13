@@ -2,7 +2,10 @@ package y2019;
 
 import com.google.common.base.Stopwatch;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.math.BigInteger;
+import java.util.Queue;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -13,7 +16,9 @@ import static y2019.Y2019D09.evalPartial;
 
 public class Y2019D13 {
 
-    public static void main(String[] args) {
+    static final boolean WRITE_VIDEO = true;
+
+    public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         // 1
@@ -25,10 +30,14 @@ public class Y2019D13 {
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
 
-    private static int runGameToCompletion(BigInteger[] program) {
+    private static int runGameToCompletion(BigInteger[] program) throws Exception {
         program[0] = BigInteger.valueOf(2); // free play mode
         Y2019D09.ProgramState programState = new Y2019D09.ProgramState(program);
         GameState gameState = new GameState();
+        VideoWriter videoWriter;
+        if (WRITE_VIDEO) {
+            videoWriter = new VideoWriter();
+        }
         Queue<BigInteger> ballTrackingInput = gameState.getBallTrackingInput();
 
         while (true) {
@@ -41,6 +50,9 @@ public class Y2019D13 {
                 Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
                 drawX = output.getOutputVal().intValueExact();
             } else if (evalResult instanceof Y2019D09.Terminated) {
+                if (WRITE_VIDEO) {
+                    videoWriter.finish();
+                }
                 return gameState.score;
             } else {
                 throw new IllegalStateException(evalResult.toString());
@@ -60,7 +72,15 @@ public class Y2019D13 {
                 } else {
                     gameState.setPix(drawX, drawY, output.getOutputVal().intValueExact());
                 }
-                gameState.draw();
+                if (WRITE_VIDEO) {
+                    // skip frames for steps where the ball hasn't been drawn yet
+                    // or where the engine is blanking a pixel
+                    if (gameState.ballX != 0 && !output.getOutputVal().equals(ZERO)) {
+                        videoWriter.putFrame(gameState.drawImage());
+                    }
+                } else {
+                    gameState.draw();
+                }
             } else {
                 throw new IllegalStateException(evalResult.toString());
             }
@@ -68,7 +88,7 @@ public class Y2019D13 {
     }
 
     static class GameState {
-        char[][] display = new char[25][40];
+        char[][] display = new char[25][35];
         int score = 0;
         int paddleX = 0;
         int ballX = 0;
@@ -141,6 +161,64 @@ public class Y2019D13 {
                 acc.append(line).append("\n");
             }
             System.out.print(acc);
+        }
+
+        public BufferedImage drawImage() {
+            int width = display[0].length;
+            int height = display.length;
+            int outputPxPerPx = 10;
+            int scoreHeight = 20;
+            BufferedImage im = new BufferedImage(
+                    width * outputPxPerPx,
+                    height * outputPxPerPx + scoreHeight,
+                    BufferedImage.TYPE_3BYTE_BGR);
+            Graphics g = im.getGraphics();
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, im.getWidth(), im.getHeight());
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    switch (display[y][x]) {
+                        case ' ':
+                            break;
+                        case '@':
+                            g.setColor(Color.RED);
+                            g.fillOval(
+                                    x * outputPxPerPx,
+                                    y * outputPxPerPx,
+                                    outputPxPerPx,
+                                    outputPxPerPx);
+                            break;
+                        case '=':
+                            int vMargin = outputPxPerPx / 5;
+                            g.setColor(Color.BLUE);
+                            g.fillRect(
+                                    x * outputPxPerPx,
+                                    y * outputPxPerPx + vMargin,
+                                    outputPxPerPx,
+                                    outputPxPerPx - 2 * vMargin);
+                            break;
+                        case '#':
+                            g.setColor(Color.DARK_GRAY);
+                            g.fillRect(
+                                    x * outputPxPerPx,
+                                    y * outputPxPerPx,
+                                    outputPxPerPx,
+                                    outputPxPerPx);
+                            break;
+                        case 'O':
+                            g.setColor(new Color(112, 130, 56));
+                            g.fillRect(
+                                    x * outputPxPerPx,
+                                    y * outputPxPerPx,
+                                    outputPxPerPx,
+                                    outputPxPerPx);
+                            break;
+                    }
+                }
+            }
+            g.setColor(Color.BLACK);
+            g.drawString("Score = " + score, scoreHeight / 2, height * outputPxPerPx + scoreHeight / 2);
+            return im;
         }
     }
 
