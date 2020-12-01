@@ -48,8 +48,8 @@ public class Y2019D11 {
 
             // First, it will output a value indicating the color to paint the panel
             Y2019D09.EvalResult evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 if (output.getOutputVal().equals(BigInteger.ZERO)) {
                     color[robotY][robotX] = 0;
                 } else if (output.getOutputVal().equals(BigInteger.ONE)) {
@@ -67,8 +67,8 @@ public class Y2019D11 {
 
             // Second, it will output a value indicating the direction the robot should turn
             evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 if (output.getOutputVal().equals(BigInteger.ZERO)) {
                     robotDir -= 1;
                     if (robotDir < 0) {

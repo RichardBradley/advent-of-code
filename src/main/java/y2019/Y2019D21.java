@@ -76,7 +76,7 @@ public class Y2019D21 {
             if (evalResult instanceof Y2019D09.Terminated) {
                 return acc.toString();
             }
-            int out = ((Y2019D09.Ouput) evalResult).getOutputVal().intValueExact();
+            int out = ((Y2019D09.Output) evalResult).getOutputVal().intValueExact();
             if (out > 256) {
                 acc.append("Output = " + out);
             } else {

@@ -1,8 +1,10 @@
 package y2019;
 
 import com.google.common.base.Stopwatch;
+import lombok.SneakyThrows;
 import lombok.Value;
 
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -23,11 +25,11 @@ public class Y2019D09 {
 //        System.out.println("example 3");
 //        evalMultiOutput(example3, 1);
         System.out.println("part 1");
-        evalMultiOutput(input, 1);
+        evalMultiOutput(input, 1); // 2518058886
 
         // 2
         System.out.println("part 2");
-        evalMultiOutput(input, 2);
+        evalMultiOutput(input, 2); // 44292
 
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
@@ -39,7 +41,7 @@ public class Y2019D09 {
     }
 
     @Value
-    static class Ouput implements EvalResult {
+    static class Output implements EvalResult {
         BigInteger outputVal;
     }
 
@@ -54,20 +56,22 @@ public class Y2019D09 {
 
         while (true) {
             evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Ouput) {
-                System.out.println(((Ouput) evalResult).outputVal);
+            if (evalResult instanceof Output) {
+                System.out.println(((Output) evalResult).outputVal);
             } else {
                 checkState(evalResult instanceof Terminated);
                 return;
             }
         }
     }
-
     public static EvalResult evalPartial(ProgramState state, Queue<BigInteger> inputs) {
-        BigInteger[] program = state.program;
+        return evalPartial(state, ProgramInput.of(inputs));
+    }
+
+    public static EvalResult evalPartial(ProgramState state, ProgramInput inputs) {
         outer:
         while (true) {
-            Instruction i = parseInstr(program, state.pc);
+            Instruction i = parseInstr(state);
             // System.out.printf("pc = %s, i = %s\n", pc, i);
 
             switch (i.opcode) {
@@ -143,7 +147,7 @@ public class Y2019D09 {
                     // block for output:
                     BigInteger output = state.evalParam(i.param1, i.param1mode);
                     state.pc += i.size;
-                    return new Ouput(output);
+                    return new Output(output);
                 case REL_BASE_OFFSET:
                     checkState(i.size == 2);
                     state.relativeBase = state.relativeBase.add(state.evalParam(i.param1, i.param1mode));
@@ -155,9 +159,10 @@ public class Y2019D09 {
         }
     }
 
-    private static Instruction parseInstr(BigInteger[] program, int pc) {
+    private static Instruction parseInstr(ProgramState state) {
         // ABCDE as per docs
-        int opcodeAndArgsSpec = program[pc].intValueExact();
+        int pc = state.pc;
+        int opcodeAndArgsSpec = state.readMem(pc).intValueExact();
         int DE = opcodeAndArgsSpec % 100;
         ParamMode C = ParamMode.fromInt((opcodeAndArgsSpec / 100) % 10);
         ParamMode B = ParamMode.fromInt((opcodeAndArgsSpec / 1000) % 10);
@@ -173,11 +178,11 @@ public class Y2019D09 {
                 return new Instruction(
                         4,
                         opcode,
-                        program[pc + 1],
+                        state.readMem(pc+1),
                         C,
-                        program[pc + 2],
+                        state.readMem(pc+2),
                         B,
-                        program[pc + 3],
+                        state.readMem(pc+3),
                         A);
             case JIT:
             case JIF:
@@ -185,9 +190,9 @@ public class Y2019D09 {
                 return new Instruction(
                         3,
                         opcode,
-                        program[pc + 1],
+                        state.readMem(pc+1),
                         C,
-                        program[pc + 2],
+                        state.readMem(pc+2),
                         B,
                         null,
                         null);
@@ -200,7 +205,7 @@ public class Y2019D09 {
                 return new Instruction(
                         2,
                         opcode,
-                        program[pc + 1],
+                        state.readMem(pc+1),
                         C,
                         null,
                         null,
@@ -295,16 +300,27 @@ public class Y2019D09 {
         ParamMode param3mode;
     }
 
-    static class ProgramState {
-        BigInteger[] program;
-        BigInteger programLen;
+    static class ProgramState implements Cloneable {
+        /**
+         * This is a copy-on-write array: all reads & writes first hit "extraMem"
+         */
+        private BigInteger[] program;
         Map<BigInteger, BigInteger> extraMem = new HashMap<>();
+
+        BigInteger programLen;
         int pc = 0;
         BigInteger relativeBase = BigInteger.ZERO;
 
         public ProgramState(BigInteger[] program) {
-            this.program = program.clone();
+            this.program = program;
             this.programLen = BigInteger.valueOf(program.length);
+        }
+
+        @SneakyThrows
+        public ProgramState clone() {
+            ProgramState shallowClone = (ProgramState) super.clone();
+            shallowClone.extraMem = new HashMap<>(extraMem);
+            return shallowClone;
         }
 
         BigInteger evalParam(BigInteger param, ParamMode mode) {
@@ -322,18 +338,23 @@ public class Y2019D09 {
 
         BigInteger readMem(BigInteger address) {
             checkArgument(address.compareTo(BigInteger.ZERO) >= 0);
+            BigInteger extraMemVal = extraMem.get(address);
+            if (extraMemVal != null) {
+                return extraMemVal;
+            }
             if (address.compareTo(programLen) < 0) {
                 return program[address.intValueExact()];
             }
-            return extraMem.getOrDefault(address, BigInteger.ZERO);
+            return BigInteger.ZERO;
+        }
+
+        BigInteger readMem(int address) {
+            return readMem(BigInteger.valueOf(address));
         }
 
         void writeMem(BigInteger address, BigInteger val) {
             checkArgument(address.compareTo(BigInteger.ZERO) >= 0);
-            if (address.compareTo(programLen) < 0) {
-                program[address.intValueExact()] = val;
-            }
-             extraMem.put(address, val);
+            extraMem.put(address, val);
         }
 
         public void writeToParam(BigInteger param, ParamMode mode, BigInteger val) {
@@ -350,6 +371,28 @@ public class Y2019D09 {
                     throw new IllegalArgumentException();
             }
         }
+    }
+
+    interface ProgramInput {
+        static ProgramInput of(Queue<BigInteger> inputs) {
+            return new ProgramInput() {
+                @Override
+                public boolean isEmpty() {
+                    return inputs.isEmpty();
+                }
+
+                @Nullable
+                @Override
+                public BigInteger poll() {
+                    return inputs.poll();
+                }
+            };
+        }
+
+        boolean isEmpty();
+
+        @Nullable
+        BigInteger poll();
     }
 
     public static BigInteger[] parse(String spec)  {

@@ -46,8 +46,8 @@ public class Y2019D13 {
             int drawY;
 
             Y2019D09.EvalResult evalResult = evalPartial(programState, ballTrackingInput);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 drawX = output.getOutputVal().intValueExact();
             } else if (evalResult instanceof Y2019D09.Terminated) {
                 if (WRITE_VIDEO) {
@@ -58,15 +58,15 @@ public class Y2019D13 {
                 throw new IllegalStateException(evalResult.toString());
             }
             evalResult = evalPartial(programState, ballTrackingInput);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 drawY = output.getOutputVal().intValueExact();
             } else {
                 throw new IllegalStateException(evalResult.toString());
             }
             evalResult = evalPartial(programState, ballTrackingInput);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 if (drawX == -1 && drawY == 0) {
                     gameState.score = output.getOutputVal().intValueExact();
                 } else {
@@ -236,8 +236,8 @@ public class Y2019D13 {
             int drawY;
 
             Y2019D09.EvalResult evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 drawX = output.getOutputVal().intValueExact();
             } else if (evalResult instanceof Y2019D09.Terminated) {
                 printGrid(grid);
@@ -249,15 +249,15 @@ public class Y2019D13 {
                 throw new IllegalStateException(evalResult.toString());
             }
             evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 drawY = output.getOutputVal().intValueExact();
             } else {
                 throw new IllegalStateException(evalResult.toString());
             }
             evalResult = evalPartial(state, inputs);
-            if (evalResult instanceof Y2019D09.Ouput) {
-                Y2019D09.Ouput output = (Y2019D09.Ouput) evalResult;
+            if (evalResult instanceof Y2019D09.Output) {
+                Y2019D09.Output output = (Y2019D09.Output) evalResult;
                 grid[drawY][drawX] = output.getOutputVal().intValueExact();
             } else {
                 throw new IllegalStateException(evalResult.toString());
