@@ -11,7 +11,7 @@ import java.util.TreeSet;
 public class LeaderboardDetails {
 
     public static void main(String[] args) throws Exception {
-        try (FileReader in = new FileReader("2020-12-06 leaderboard.json")) {
+        try (FileReader in = new FileReader("2020-12-07 leaderboard.json")) {
             Gson gson = new GsonBuilder()
                     .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                     .create();
