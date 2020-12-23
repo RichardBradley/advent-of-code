@@ -23,7 +23,7 @@ public class Y2020D17 {
     private static boolean[][][] parse3d(String input) {
         String[] lines = input.split("\n");
         int height = lines.length;
-        int gridSize = height + 100;
+        int gridSize = height + 24;
         int offset = gridSize / 2;
         boolean[][][] acc = new boolean[gridSize][gridSize][gridSize];
         for (int y = 0; y < lines.length; y++) {
