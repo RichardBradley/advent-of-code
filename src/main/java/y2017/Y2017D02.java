@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class Y2017D2 {
+public class Y2017D02 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();

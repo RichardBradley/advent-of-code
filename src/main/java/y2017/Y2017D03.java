@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class Y2017D3 {
+public class Y2017D03 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();

@@ -4,7 +4,7 @@ import com.google.common.base.Stopwatch;
 
 import java.util.concurrent.TimeUnit;
 
-public class Y2017D1 {
+public class Y2017D01 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();

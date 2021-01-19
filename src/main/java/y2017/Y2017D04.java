@@ -9,17 +9,17 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class Y2017D4 {
+public class Y2017D04 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
 
         System.out.println(Resources.readLines(Resources.getResource("y2017/Y2017D04.txt"), StandardCharsets.UTF_8).stream()
-                .filter(Y2017D4::isValidPassphrase)
+                .filter(Y2017D04::isValidPassphrase)
                 .count());
 
         System.out.println(Resources.readLines(Resources.getResource("y2017/Y2017D04.txt"), StandardCharsets.UTF_8).stream()
-                .filter(Y2017D4::isValidPassphrase2)
+                .filter(Y2017D04::isValidPassphrase2)
                 .count());
 
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
