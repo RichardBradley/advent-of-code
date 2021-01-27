@@ -3,7 +3,6 @@ package y2016;
 import com.google.common.base.Stopwatch;
 import lombok.Value;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -29,7 +28,7 @@ public class Y2016D23 {
 
         // 2
         registers = new int[4];
-        registers[2] = 12;
+        registers[0] = 12;
         System.out.println(eval(parse(input), registers)[0]);
 
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
@@ -85,6 +84,36 @@ public class Y2016D23 {
                         opCount, pc, Arrays.stream(registers).mapToObj(Integer::toString).collect(toList()));
             }
             Instruction instruction = program[pc];
+
+            // Could do further optimization here, but this runs in 11 sec, so meh
+
+            // Optimization here:
+            // Look for:
+            //            "dec X",
+            //            "inc Y",
+            //            "jnz X -2",
+            // and replace with   Y += X, X = 0
+            if (pc < program.length - 3) {
+                Instruction instruction2 = program[pc + 1];
+                Instruction instruction3 = program[pc + 2];
+
+                if (instruction3.op == JNZ && instruction3.arg2 == -2 && !instruction3.arg2IsChar && instruction3.arg1IsChar) {
+                    if (instruction.op == DEC && instruction.arg1IsChar && instruction.arg1 == instruction3.arg1
+                            && instruction2.op == INC && instruction2.arg1IsChar) {
+                        registers[instruction2.arg1] += registers[instruction.arg1];
+                        registers[instruction.arg1] = 0;
+                        pc += 3;
+                        continue;
+                    } else if (instruction2.op == DEC && instruction2.arg1IsChar && instruction2.arg1 == instruction3.arg1
+                            && instruction.op == INC && instruction.arg1IsChar) {
+                        registers[instruction.arg1] += registers[instruction2.arg1];
+                        registers[instruction2.arg1] = 0;
+                        pc += 3;
+                        continue;
+                    }
+                }
+            }
+
             switch (instruction.op) {
                 case CPY:
                     int from = instruction.arg1IsChar
