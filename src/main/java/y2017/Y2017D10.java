@@ -21,7 +21,7 @@ public class Y2017D10 {
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
 
-    private static String hash2(String data) {
+    public static String hash2(String data) {
         int[] list = getListTo(256);
         int[] inputLengths = new int[data.length() + 5];
         for (int i = 0; i < data.length(); i++) {
