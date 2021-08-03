@@ -2,8 +2,8 @@ package y2016;
 
 import com.google.common.base.Stopwatch;
 import lombok.SneakyThrows;
+import org.apache.commons.codec.binary.Hex;
 
-import javax.xml.bind.DatatypeConverter;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +71,7 @@ public class Y2016D05 {
     private static String md5(String x) {
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         byte[] digest = md5.digest(x.getBytes(StandardCharsets.UTF_8));
-        return DatatypeConverter.printHexBinary(digest);
+        return new String(Hex.encodeHex(digest, false));
     }
 
 }

@@ -3,7 +3,7 @@ package y2020;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-import javafx.geometry.Point3D;
+import lombok.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -136,4 +136,14 @@ public class Y2020D24 {
             "eneswnwswnwsenenwnwnwwseeswneewsenese\n" +
             "neswnwewnwnwseenwseesewsenwsweewe\n" +
             "wseweeenwnesenwwwswnew";
+
+
+    @Value
+    static class Point3D {
+        double x, y, z;
+
+        public Point3D add(Point3D other) {
+            return new Point3D(this.x + other.x, this.y + other.y, this.z + other.z);
+        }
+    }
 }

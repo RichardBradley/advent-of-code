@@ -1,7 +1,7 @@
 package y2015;
 
 import com.google.common.collect.Collections2;
-import javafx.util.Pair;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
 import java.util.regex.Matcher;

@@ -1,17 +1,5 @@
 package y2015;
 
-import com.google.common.collect.Collections2;
-import javafx.util.Pair;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.IntStream;
-
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2015D10 {

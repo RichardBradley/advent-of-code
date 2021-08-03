@@ -4,7 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-import javafx.geometry.Point3D;
+import lombok.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -56,5 +56,14 @@ public class Y2017D11 {
             .put("sw", new Point3D(0, -1, 1))
             .put("nw", new Point3D(1, -1, 0))
             .build();
+
+    @Value
+    static class Point3D {
+        double x, y, z;
+
+        public Point3D add(Point3D other) {
+            return new Point3D(this.x + other.x, this.y + other.y, this.z + other.z);
+        }
+    }
 }
 
