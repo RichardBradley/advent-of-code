@@ -14,16 +14,19 @@ public class Y2021D01 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
-        List<Integer> input = Resources.readLines(Resources.getResource("y2021/Y2021D01.txt"), StandardCharsets.UTF_8)
-                .stream().map(Integer::parseInt).collect(Collectors.toList());
+        try {
+            List<Integer> input = Resources.readLines(Resources.getResource("y2021/Y2021D01.txt"), StandardCharsets.UTF_8)
+                    .stream().map(Integer::parseInt).collect(Collectors.toList());
 
-        // 1
-        assertThat(countAscending(input)).isEqualTo(1502);
+            // 1
+            assertThat(countAscending(input)).isEqualTo(1502);
 
-        // 2
-        assertThat(countAscendingThrees(input)).isEqualTo(1538);
+            // 2
+            assertThat(countAscendingThrees(input)).isEqualTo(1538);
 
-        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        } finally {
+            System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        }
     }
 
     private static int countAscendingThrees(List<Integer> input) {
