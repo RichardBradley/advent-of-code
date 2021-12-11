@@ -25,7 +25,6 @@ public class Y2021D10 {
 
             // 2
             assertThat(part2(example)).isEqualTo(288957);
-            // 133901619 too low
             assertThat(part2(input)).isEqualTo(-1);
 
         } finally {
