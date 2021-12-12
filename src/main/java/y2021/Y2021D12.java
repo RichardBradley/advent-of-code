@@ -24,7 +24,7 @@ public class Y2021D12 {
 
             // 2
             assertThat(part2(example)).isEqualTo(36);
-            assertThat(part2(input)).isEqualTo(-1);
+            assertThat(part2(input)).isEqualTo(104834);
 
         } finally {
             System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
@@ -32,48 +32,19 @@ public class Y2021D12 {
     }
 
     private static long part1(List<String> input) {
-        Map<String, Set<String>> connections = new HashMap<>();
-        for (String line : input) {
-            String[] parts = line.split("-");
-            checkState(parts.length == 2);
-            connections.computeIfAbsent(parts[0], x -> new HashSet<>())
-                    .add(parts[1]);
-            connections.computeIfAbsent(parts[1], x -> new HashSet<>())
-                    .add(parts[0]);
-        }
+        Map<String, Set<String>> connections = parseConnections(input);
 
         // DFS
-        return countPaths("start", new ArrayList<>(), new HashSet<>(), connections);
+        return countPaths("start", new HashSet<>(), false, connections);
     }
-
-    private static long countPaths(String curr, List<String> visited, Set<String> visitedSmall, Map<String, Set<String>> connections) {
-        long count = 0;
-        for (String possibleNext : connections.get(curr)) {
-            if ("start".equals(possibleNext)) {
-                // don't revisit start -- unwritten rule
-            } else if ("end".equals(possibleNext)) {
-                // System.out.println(visited + ",end");
-                count++;
-            } else if (isSmall(possibleNext)) {
-                if (!visitedSmall.add(possibleNext)) {
-                    // cannot proceed
-                } else {
-                    visited.add(possibleNext);
-                    count += countPaths(possibleNext, visited, visitedSmall, connections);
-                    visited.remove(visited.size() - 1);
-                    visitedSmall.remove(possibleNext);
-                }
-            } else {
-                visited.add(possibleNext);
-                count += countPaths(possibleNext, visited, visitedSmall, connections);
-                visited.remove(visited.size() - 1);
-            }
-        }
-        return count;
-    }
-
 
     private static long part2(List<String> input) {
+        Map<String, Set<String>> connections = parseConnections(input);
+
+        return countPaths("start", new HashSet<>(), true, connections);
+    }
+
+    private static Map<String, Set<String>> parseConnections(List<String> input) {
         Map<String, Set<String>> connections = new HashMap<>();
         for (String line : input) {
             String[] parts = line.split("-");
@@ -83,12 +54,10 @@ public class Y2021D12 {
             connections.computeIfAbsent(parts[1], x -> new HashSet<>())
                     .add(parts[0]);
         }
-
-        // DFS
-        return countPaths2("start", new ArrayList<>(), new HashSet<>(), false, connections);
+        return connections;
     }
 
-    private static long countPaths2(String curr, List<String> visited, Set<String> visitedSmall, boolean hasRevisitedOneSmall, Map<String, Set<String>> connections) {
+    private static long countPaths(String curr, Set<String> visitedSmall, boolean mayRevisitOneSmall, Map<String, Set<String>> connections) {
         long count = 0;
         for (String possibleNext : connections.get(curr)) {
             if ("start".equals(possibleNext)) {
@@ -98,23 +67,17 @@ public class Y2021D12 {
                 count++;
             } else if (isSmall(possibleNext)) {
                 if (!visitedSmall.add(possibleNext)) {
-                    if (!hasRevisitedOneSmall) {
-                        visited.add(possibleNext);
-                        count += countPaths2(possibleNext, visited, visitedSmall, true, connections);
-                        visited.remove(visited.size() - 1);
+                    if (mayRevisitOneSmall) {
+                        count += countPaths(possibleNext, visitedSmall, false, connections);
                     } else {
                         // cannot proceed
                     }
                 } else {
-                    visited.add(possibleNext);
-                    count += countPaths2(possibleNext, visited, visitedSmall, hasRevisitedOneSmall, connections);
-                    visited.remove(visited.size() - 1);
+                    count += countPaths(possibleNext, visitedSmall, mayRevisitOneSmall, connections);
                     visitedSmall.remove(possibleNext);
                 }
             } else {
-                visited.add(possibleNext);
-                count += countPaths2(possibleNext, visited, visitedSmall, hasRevisitedOneSmall, connections);
-                visited.remove(visited.size() - 1);
+                count += countPaths(possibleNext, visitedSmall, mayRevisitOneSmall, connections);
             }
         }
         return count;
