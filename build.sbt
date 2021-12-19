@@ -13,3 +13,4 @@ libraryDependencies += "commons-codec" % "commons-codec" % "1.13"
 // video generating lib
 libraryDependencies += "io.humble" % "humble-video-all" % "0.3.0"
 libraryDependencies += "io.humble" % "humble-video-arch-x86_64-w64-mingw32" % "0.3.0"
+libraryDependencies += "javax.vecmath" % "vecmath" % "1.5.2"
