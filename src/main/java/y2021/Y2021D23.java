@@ -34,27 +34,18 @@ public class Y2021D23 {
     private static long part1(List<String> input) {
         PriorityQueue<SearchState> searchQueue = new PriorityQueue<>();
         searchQueue.add(new SearchState(0, input));
-        long lastReportTimeMillis = System.currentTimeMillis();
-        Map<List<String>, Integer> lowestCostByMap = new HashMap<>();
+        Set<List<String>> visited = new HashSet<>();
 
         while (true) {
             SearchState curr = searchQueue.poll();
             if (curr.isComplete()) {
                 return curr.powerCost;
             }
-
-            for (SearchState possibleMove : curr.possibleMoves()) {
-                Integer prevCost = lowestCostByMap.get(possibleMove.map);
-                if (prevCost == null || prevCost > possibleMove.powerCost) {
-                    lowestCostByMap.put(possibleMove.map, possibleMove.powerCost);
-                    searchQueue.add(possibleMove);
-                }
+            if (!visited.add(curr.map)) {
+                continue;
             }
 
-            if (System.currentTimeMillis() - lastReportTimeMillis > 10000) {
-                lastReportTimeMillis = System.currentTimeMillis();
-                System.out.println("Queue len = " + searchQueue.size() + " Current node = " + curr);
-            }
+            searchQueue.addAll(curr.possibleMoves());
         }
     }
 
