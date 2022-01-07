@@ -21,7 +21,7 @@ public class Y2021D21 {
 
             // 2
             assertThat(part2(example)).isEqualTo(444356092776315L);
-            assertThat(part2(input)).isEqualTo(-1);
+            assertThat(part2(input)).isEqualTo(265845890886828L);
 
         } finally {
             System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");

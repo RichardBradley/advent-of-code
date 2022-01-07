@@ -14,7 +14,6 @@ public class Y2021D24 {
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
         try {
-            List<String> input = Resources.readLines(Resources.getResource("y2021/Y2021D24.txt"), StandardCharsets.UTF_8);
             // You got rank 405 on this star's leaderboard.
             // You got rank 334 on this star's leaderboard.
 
@@ -101,18 +100,6 @@ public class Y2021D24 {
         if (x != 0) {
             return Results.INVALID;
         }
-
-//        if (x == 0) {
-//            countZero++;
-//        } else {
-//            countNz++;
-//        }
-////        // qqq
-////        System.out.println(String.format(
-////                "%s, %s, %s, %s",
-////                w, x, y, z));
-//        if (System.currentTimeMillis() > 0) return false;
-
 
         y = 25 * x + 1;
         z = z * y;
