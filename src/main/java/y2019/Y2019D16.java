@@ -1,17 +1,12 @@
 package y2019;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import lombok.Value;
-import scala.Int;
 
-import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 import static java.lang.System.out;
 
@@ -19,38 +14,63 @@ public class Y2019D16 {
 
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
+        try {
 
-        // 1
-//        testGeneratePattern();
-//        assertThat(transform("12345678", 1)).isEqualTo("48226158");
-//        assertThat(transform("12345678", 2)).isEqualTo("34040438");
-//        assertThat(transform("12345678", 3)).isEqualTo("03415518");
-//        assertThat(transform("12345678", 4)).isEqualTo("01029498");
-//        assertThat(transform("80871224585914546619083218645595", 100).substring(0, 8)).isEqualTo("24176176");
-//        out.println("example ok");
-//        out.println(transform(input, 100).substring(0, 8));
+            // 1
+            testGeneratePattern();
+            assertThat(transform("12345678", 1)).isEqualTo("48226158");
+            assertThat(transform("12345678", 2)).isEqualTo("34040438");
+            assertThat(transform("12345678", 3)).isEqualTo("03415518");
+            assertThat(transform("12345678", 4)).isEqualTo("01029498");
+            assertThat(transform("80871224585914546619083218645595", 100).substring(0, 8)).isEqualTo("24176176");
+            out.println("example ok");
+            out.println(transform(input, 100).substring(0, 8));
 
-        // 2
-        assertThat(transformPart2("03036732577212944063491565474664")).isEqualTo("84462026");
-        out.println(transformPart2(input));
-        // 25131128 too low
-        int messageOffset = Integer.parseInt(input.substring(0, 7));
-        System.out.println(transform(Strings.repeat(input, 10000), 100)
-                .substring(messageOffset, messageOffset + 8));
+            // 2
+            assertThat(transformPart2("03036732577212944063491565474664")).isEqualTo("84462026");
+            assertThat(transformPart2(input)).isEqualTo("53201602");
 
-        out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        } finally {
+            out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        }
     }
 
     private static String transformPart2(String signalStr) {
-        int[] signal = signalStr.chars().map(c -> c - '0').toArray();
-        assertThat(signal.length % 4).isIn(ImmutableList.of(0, 2));
-        // the
+        // This is some bullshit
+        // See https://www.reddit.com/r/adventofcode/comments/ebf5cy/2019_day_16_part_2_understanding_how_to_come_up/fb4bvw4/
+        // and https://work.njae.me.uk/2019/12/20/advent-of-code-2019-day-16/
+        int skipLen = Integer.parseInt(signalStr.substring(0, 7));
+        // alg requires that the output is more than 1/2 way along the message
+        int repeatedSignalLen = signalStr.length() * 10000;
+        checkState(skipLen * 2 > repeatedSignalLen);
+        checkState(skipLen < repeatedSignalLen);
 
-        // op count:
-        //   len = 10000 * 650
-        //   each digit = len ops
-        //   total = 100 * len * len = 10^15
-        return "qq";
+        int[] truncatedSignal = new int[repeatedSignalLen - skipLen];
+
+        // So, to turn …….abcdef into …….ghijkl
+        //
+        //a+b+c+d+e+f = g = a+h
+        //  b+c+d+e+f = h = b+i
+        //    c+d+e+f = i = c+j
+        //      d+e+f = j = d+k
+        //        e+f = k = e+l
+        //          f = l
+
+        for (int i = 0; i < truncatedSignal.length; i++) {
+            truncatedSignal[i] = signalStr.charAt((skipLen + i) % signalStr.length()) - '0';
+        }
+
+        for (int opCount = 0; opCount < 100; opCount++) {
+            for (int i = truncatedSignal.length - 2; i >= 0; i--) {
+                truncatedSignal[i] = (truncatedSignal[i] + truncatedSignal[i + 1]) % 10;
+            }
+        }
+
+        StringBuilder acc = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            acc.append(truncatedSignal[i]);
+        }
+        return acc.toString();
     }
 
     private static String transform(String signalStr, int count) {
