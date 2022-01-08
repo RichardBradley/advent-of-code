@@ -1,112 +1,74 @@
 package y2019;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import lombok.SneakyThrows;
+import com.google.common.io.Resources;
 import lombok.Value;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.math.BigInteger;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntPredicate;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
-import static java.lang.System.console;
 import static java.lang.System.out;
-import static y2019.Y2019D09.parse;
 
 public class Y2019D18 {
 
-    private static boolean LOG = false;
-
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
+        try {
+            List<String> input = Resources.readLines(Resources.getResource("y2019/Y2019D18.txt"), StandardCharsets.UTF_8);
 
-        // 1
-        testAdd();
-        assertThat(shortestStepsToAllKeys(example1)).isEqualTo(8);
-        out.println("example 1 ok");
-        assertThat(shortestStepsToAllKeys(example2)).isEqualTo(86);
-        out.println("example 2 ok");
-        assertThat(shortestStepsToAllKeys(example3)).isEqualTo(136);
-        out.println("example 3 ok");
-        out.println(shortestStepsToAllKeys(input));
+            // 1
+            testAdd();
+            assertThat(shortestStepsToAllKeys(example1)).isEqualTo(8);
+            out.println("example 1 ok");
+            assertThat(shortestStepsToAllKeys(example2)).isEqualTo(86);
+            out.println("example 2 ok");
+            assertThat(shortestStepsToAllKeys(example3)).isEqualTo(136);
+            out.println("example 3 ok");
+            assertThat(shortestStepsToAllKeys(example4)).isEqualTo(81);
+            out.println("example 4 ok");
 
-        // 2
-//        out.println(timeToFillWithOxygen(input));
+            // 4274 too high
+            out.println(shortestStepsToAllKeys(input));
 
-        out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+            // 2
+        } finally {
+            out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        }
     }
 
-    private static int shortestStepsToAllKeys(String mapStr) {
-        String[] lines = mapStr.split("\n");
-        int height = lines.length;
-        int width = lines[0].length();
-        char[][] map = new char[height][];
-        for (int y = 0; y < height; y++) {
-            map[y] = lines[y].toCharArray();
-        }
-        long keyCount = Arrays.stream(lines)
-                .flatMapToInt(line -> line.chars())
-                .filter(i -> isKey((char) i)).count();
 
-        Point entry = null;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                if (map[y][x] == '@') {
-                    checkState(entry == null);
-                    entry = new Point(x, y);
-                }
-            }
-        }
-        checkState(entry != null);
+    private static int shortestStepsToAllKeys(List<String> input) {
+        KeyMap map = new KeyMap(input);
 
         PriorityQueue<SearchState> searchQueue = new PriorityQueue<>();
-        Map<String, Integer> shortestDistByKeySet = new HashMap<>();
-        searchQueue.add(new SearchState(entry, 0, ""));
+        Map<SearchState, Integer> minDist = new HashMap<>();
+        searchQueue.add(new SearchState(map.startLoc, 0, ""));
+
+        long lastReportTimeMillis = System.currentTimeMillis();
         while (true) {
             SearchState curr = searchQueue.poll();
-            log("at " + curr);
-            if (curr.collectedKeys.length() == keyCount) {
+            if (curr.collectedKeys.length() == map.keyCount) {
                 return curr.dist;
             }
-            List<ReachableKey> reachableKeys = curr.findReachableKeys(map);
-            for (ReachableKey reachableKey : reachableKeys) {
-                String newCollectedKeys = add(curr.collectedKeys, reachableKey.key);
-                searchQueue.add(new SearchState(
-                        reachableKey.location,
-                        reachableKey.newDist,
-                        newCollectedKeys));
-                // qq how to discard bad paths? Need an admissable heuristic, but dist is no good, see example2
-//                shortestDistByKeySet.compute(newCollectedKeys, (k, oldDist) -> {
-//                    if (oldDist == null || oldDist > reachableKey.newDist) {
-//                        SearchState ss = new SearchState(
-//                                reachableKey.location,
-//                                reachableKey.newDist,
-//                                newCollectedKeys);
-//                        log("enqueue " + ss);
-//                        searchQueue.add(ss);
-//                        return reachableKey.newDist;
-//                    } else {
-//                        log("ignore fetch of %s for %s as slower than previous alternative dist %s",
-//                                reachableKey.key, reachableKey.newDist, oldDist);
-//                        return oldDist;
-//                    }
-//                });
-            }
-        }
-    }
 
-    private static void log(String format, Object... args) {
-        if (LOG) {
-            out.printf(format + "\n", args);
+            if (System.currentTimeMillis() - lastReportTimeMillis > 10000) {
+                lastReportTimeMillis = System.currentTimeMillis();
+                out.println("Queue len = " + searchQueue.size() + " Current node = " + curr);
+            }
+
+            map.forEachNeighbour(curr, neighbour -> {
+                Integer prevDist = minDist.get(neighbour);
+                if (prevDist == null || prevDist > neighbour.dist) {
+                    searchQueue.add(neighbour);
+                    minDist.put(neighbour, neighbour.dist);
+                }
+            });
         }
     }
 
@@ -136,13 +98,6 @@ public class Y2019D18 {
     }
 
     @Value
-    static class ReachableKey {
-        Point location;
-        char key;
-        int newDist;
-    }
-
-    @Value
     static class SearchState implements Comparable<SearchState> {
         Point location;
         int dist;
@@ -152,32 +107,100 @@ public class Y2019D18 {
         public int compareTo(SearchState that) {
             return Integer.compare(this.dist, that.dist);
         }
+    }
 
-        public List<ReachableKey> findReachableKeys(char[][] map) {
-            // Looks like the maze is acyclic?
-            // try a depth first search?
-            List<ReachableKey> reachableKeys = new ArrayList<>();
-            findReachableKeys(map, dist, location, new HashSet<>(), reachableKeys);
-            return reachableKeys;
+    @Value
+    static class ReachablePoint {
+        Point location;
+        char val;
+        int dist; // dist from reachable key search start, not total
+    }
+
+    static class KeyMap {
+
+        final char[][] map;
+        final int keyCount;
+        final Point startLoc;
+        Map<Point, List<ReachablePoint>> reachableCache = new HashMap<>();
+
+        KeyMap(List<String> lines) {
+            int height = lines.size();
+            int width = lines.get(0).length();
+            map = new char[height][];
+            for (int y = 0; y < height; y++) {
+                map[y] = lines.get(y).toCharArray();
+            }
+            keyCount = (int) lines.stream()
+                    .flatMapToInt(line -> line.chars())
+                    .filter(i -> isKey((char) i))
+                    .count();
+
+            Point entry = null;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    if (map[y][x] == '@') {
+                        checkState(entry == null);
+                        entry = new Point(x, y);
+                    }
+                }
+            }
+            checkState(entry != null);
+            startLoc = entry;
         }
 
-        private void findReachableKeys(char[][] map, int dist, Point location, Set<Point> visited, List<ReachableKey> reachableKeys) {
+        public void forEachNeighbour(SearchState curr, Consumer<SearchState> callback) {
+
+            List<ReachablePoint> reachable = reachableCache.computeIfAbsent(curr.location,
+                    (p) -> {
+                        ArrayList<ReachablePoint> acc = new ArrayList<>();
+                        HashSet<Point> visited = new HashSet<>();
+                        visited.add(p);
+                        findReachable(1, new Point(p.x + 1, p.y), visited, acc);
+                        findReachable(1, new Point(p.x - 1, p.y), visited, acc);
+                        findReachable(1, new Point(p.x, p.y + 1), visited, acc);
+                        findReachable(1, new Point(p.x, p.y - 1), visited, acc);
+                        return acc;
+                    });
+
+            for (ReachablePoint reachablePoint : reachable) {
+                char c = reachablePoint.val;
+                if (isKey(c) && !contains(curr.collectedKeys, c)) {
+                    // move to key and pick it up:
+                    callback.accept(
+                            new SearchState(
+                                    reachablePoint.location,
+                                    curr.dist + reachablePoint.dist,
+                                    add(curr.collectedKeys, c)));
+                } else if (isKey(c) || (isDoor(c) && contains(curr.collectedKeys, Character.toLowerCase(c)))) {
+                    // move to the unlocked door or to the already collected key
+                    callback.accept(
+                            new SearchState(
+                                    reachablePoint.location,
+                                    curr.dist + reachablePoint.dist,
+                                    curr.collectedKeys));
+                } else if (isDoor(c)) {
+                    // blocked
+                } else {
+                    throw new IllegalArgumentException("for " + c);
+                }
+            }
+        }
+
+        private void findReachable(int dist, Point location, Set<Point> visited, List<ReachablePoint> reachable) {
             if (!visited.add(location)) {
                 return; // already visited
             }
+
             char c = map[location.y][location.x];
-            checkState(dist <= 200); // catch runaway
-            if (isKey(c) && !contains(collectedKeys, c)) {
-                reachableKeys.add(new ReachableKey(location, c, dist));
+            if (isKey(c) || isDoor(c)) {
+                reachable.add(new ReachablePoint(location, c, dist));
             } else if (c == '#') {
                 return;
-            } else if (isDoor(c) && !contains(collectedKeys, Character.toLowerCase(c))) {
-                return;
-            } else if (c == '.' || c == '@' || isKey(c) || isDoor(c)) {
-                findReachableKeys(map, dist + 1, new Point(location.x + 1, location.y), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x - 1, location.y), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x, location.y + 1), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x, location.y - 1), visited, reachableKeys);
+            } else if (c == '.' || c == '@') {
+                findReachable(dist + 1, new Point(location.x + 1, location.y), visited, reachable);
+                findReachable(dist + 1, new Point(location.x - 1, location.y), visited, reachable);
+                findReachable(dist + 1, new Point(location.x, location.y + 1), visited, reachable);
+                findReachable(dist + 1, new Point(location.x, location.y - 1), visited, reachable);
             } else {
                 throw new IllegalArgumentException("for " + c);
             }
@@ -188,109 +211,35 @@ public class Y2019D18 {
         }
     }
 
-    static String example1 =
-            "#########\n" +
-                    "#b.A.@.a#\n" +
-                    "#########";
+    static List<String> example1 = List.of(
+            "#########",
+            "#b.A.@.a#",
+            "#########");
 
-    static String example2 =
-            "########################\n" +
-                    "#f.D.E.e.C.b.A.@.a.B.c.#\n" +
-                    "######################.#\n" +
-                    "#d.....................#\n" +
-                    "########################";
+    static List<String> example2 = List.of(
+            "########################",
+            "#f.D.E.e.C.b.A.@.a.B.c.#",
+            "######################.#",
+            "#d.....................#",
+            "########################");
 
-    static String example3 =
-            "#################\n" +
-                    "#i.G..c...e..H.p#\n" +
-                    "########.########\n" +
-                    "#j.A..b...f..D.o#\n" +
-                    "########@########\n" +
-                    "#k.E..a...g..B.n#\n" +
-                    "########.########\n" +
-                    "#l.F..d...h..C.m#\n" +
-                    "#################";
+    static List<String> example3 = List.of(
+            "#################",
+            "#i.G..c...e..H.p#",
+            "########.########",
+            "#j.A..b...f..D.o#",
+            "########@########",
+            "#k.E..a...g..B.n#",
+            "########.########",
+            "#l.F..d...h..C.m#",
+            "#################");
 
-    static String input =
-            "#################################################################################\n" +
-                    "#...#.......#....a..#...........#..e....#.....#...#...#...........#.............#\n" +
-                    "#.#.#.#####.#.#####.#.#######.###.###.#.#.###.#.#.###.#.#########.#.###.#######.#\n" +
-                    "#.#.#.#.#...#.#.K...#...#...#.....#.#.#.#.#.....#.#...#t......#...#.#...#.......#\n" +
-                    "#.###B#.#.#.#.#.#######.###.#######.#.###.#######.#.#########.#.#####.###.#######\n" +
-                    "#.#q..#.#.#.#.#...#.....#...#.......#...#...#.#...#.........#.#.......#.#.#.....#\n" +
-                    "#.#.###.#.#.#.###.#.#####.#.#.#####.###.###.#.#.#####.#######.#########.#.###.#.#\n" +
-                    "#...#...#.#.#...#.#.......#...#.....#...#...#.........#.....#.......#.#...#m..#.#\n" +
-                    "#.#####.#.#####.#.#######.#########.#.###F#############.###.###.###.#.#.###.#####\n" +
-                    "#...#...#.......#.......#.#......h#.#...#.#.....#.......#.....#.#...#.#.#.......#\n" +
-                    "###.#.###########.#####.#.#.#####.#####.#.#.###.#.#####.#####.#.#.###G#.###.###.#\n" +
-                    "#.#.#.......#...#...#...#.#...J.#.#.....#.#...#.#.....#.#...#.#.#.#...#...#...#.#\n" +
-                    "#.#.#####.###.#.###.#####.#####.#.#.###.#.###.#.#####.#.#.#.#.###.#.#.###.#####S#\n" +
-                    "#w#...#...#...#...#...#...#...#.#...#...#.#...#.....#.#.#.#.#.....#.#...#.......#\n" +
-                    "#.###.#.###.#####.###.#.#####.#.#####.###.#.###.###.#.###.#.#######.###.#######.#\n" +
-                    "#...#...#...#.....#...#.#...#.#...#.#.#.#.#.#.#.#...#.....#...#...#.#.#.........#\n" +
-                    "#.#####.#.###.#####.###.#.#.#.###.#.#.#.#.#.#.#.###.#########.#.#.#.#.###########\n" +
-                    "#.......#...#.....#.#.....#...#.#.#...#.#...#.#...#.....#...#.#.#.#.....#.......#\n" +
-                    "#C#########.#####.#.#.#######.#.#.###.#.#.###.###.#####.#.###.#.#######.###.###.#\n" +
-                    "#.#.......#.#.#...#...#...#.....#...#...#.......#.#.....#.#...#.....#.#...#...#.#\n" +
-                    "#.###.#.#.#.#.#.###.###.#.#########.###.#####.###.#.#####.#.#####.#.#.###.###.###\n" +
-                    "#...#.#.#.#.#.#.#y..#...#...#.....#.#...#.....#...#.#.....#...#...#.....#...#...#\n" +
-                    "###.###.#I#.#.#.###########.#.###.#.#####.#####.###.#.###.#####.###########.#.#.#\n" +
-                    "#...#...#.#.#.#...........#...#...#.#...#...#...#.#...#...#.....#.........#.#.#.#\n" +
-                    "#.###.###.#.#.#####.###########.###.#.#.#####.###.#.#####.###.###.#######.#.###.#\n" +
-                    "#.....#...#...#...#.............#.....#.#.....#...#.#...#.....#...#.....#...#...#\n" +
-                    "#####.#######.#.#.###############.#####.#.#######.#.#.#.#####.#.###.###.#####.###\n" +
-                    "#.....#.....#...#.#...#.............#...#.......#...#.#.#.....#.#.#.#.#.........#\n" +
-                    "#.#####.###.#####.#.###.###########.#.###.#####.#####.#.#######.#.#.#.#########.#\n" +
-                    "#...#.#.#.#.......#...........#...#.#...#.....#.......#...#.....#...#.....#...#.#\n" +
-                    "###.#.#.#.###############.#####.#.#.###.#####.###########.#.#######.###.###.#.#.#\n" +
-                    "#...#.#...#.......#.....#.#.....#.#...#.#.....#...#.....#...#.....#.#...#...#...#\n" +
-                    "#.###.###.#.#####.#.###.###.#####.#####.#.#####.###.###.#####.###.#.#.###.#####.#\n" +
-                    "#.#.....#.#...#.....#...#...#.....#.....#...#.......#...#.....#.#.#...#...#.....#\n" +
-                    "#.###L#.#.#.#.#######.###.###.#####.###.###.#.#######.#.###.###.#.###.#.###.#####\n" +
-                    "#o..#.#.#.#.#.....#.#.#...#.#...#...#.#.#.#.#.....#...#.....#.#...#...#.#.......#\n" +
-                    "###.###.#.#######.#.#.#.#.#.###.#.###.#.#.#.#######.#########.#.#######.#######.#\n" +
-                    "#.#...#.#.......#.#.#.#.#.#.#...#.#...#.#.#.#...#...#.........#.#.....#.......#.#\n" +
-                    "#.###.#.#######.#.#.#.###.#.#.###.#.###.#.#.#.#.#.###.#######.#.#.###.#######.#.#\n" +
-                    "#.............#...#.......#.......#...........#...#.........#.....#...........#.#\n" +
-                    "#######################################.@.#######################################\n" +
-                    "#.....#.....#.#.........#.#...#.....#...........#..u........#...#.......#.....Q.#\n" +
-                    "#.#.###.#.#.#.#.#######.#.#.#.#.#.###.#.#.#.###.#.#########.###.#.#.###.#######.#\n" +
-                    "#.#.#...#.#.#.#.....#...#.R.#.#.#.....#.#.#...#...#.......#r....#.#...#.........#\n" +
-                    "#.#.#.###.#.#.#####.###.#####.#.#######.#.###.#######.###.#####.#.###.#####.#####\n" +
-                    "#.#...#...#.......#...#.....#.#.#.#...#.#.#.#...#...#.#...#.....#b#.#...#...#..c#\n" +
-                    "#.#####.#############.#####.#.#.#.#.#.#.#.#.###.#.#.#.#.###.#####.#.###.#####.#.#\n" +
-                    "#p#...V.#..x#.......#...#...#.....#.#...#.#...#.#.#...#...#.#.#...#...#.....#.#.#\n" +
-                    "###.#####.#.#.#####.###.#.###U#####.###.#.#.#.#.#.#######.#.#.#.###.#.#####.#.#.#\n" +
-                    "#...#.....#.....#...#...#.#.#.#.....#.#.#...#.#.#.#...#.#.#...#...#.#.....#...#.#\n" +
-                    "#.###.###########.###.###.#.#.#.#####.#.#.#####.#.#.#.#.#.###.###.#.#####.#####.#\n" +
-                    "#.......#.......#...#.#.#.#...#...#.....#.#...#.#.#.#.#...#...#.#.#.....#...#.#.#\n" +
-                    "#.#####.#.#####.###.#.#.#.#.#####.#######.#.#.#.#.#H#.###.#.###.#.#.###.###.#.#.#\n" +
-                    "#.#...#.#.#...#.....#.#...#.....#...#...#.#.#...#.#.#...#.#.....#.#...#.#.#...#.#\n" +
-                    "#.#.#.###.#.#######.#.###.#########.#.#.###.#####.#.###.###.#####.#####.#.###.#.#\n" +
-                    "#.#.#.....#...#.....#...#.#.......#...#.#...#.....#.#.#.....#...#.......#.....#.#\n" +
-                    "#.#.#########.#.#######.#.#.#####.#####.#.###.#.###.#.#######.#.#########.#####.#\n" +
-                    "#.#.........#.#.#.#.....#...#...#.....#.#...#.#.#.........#...#...#.....#...#...#\n" +
-                    "#.#########.#.#.#.#.#########.#.#####.#.#.#.#.###.#########.###.###.#.#####.#.#.#\n" +
-                    "#.#.......#.#.#...#.#.......#.#.....#.#.#.#.#.....#.#.........#.#...#.#.....#.#.#\n" +
-                    "#.#######.#.#.###.#.###.#####.#####.#.#.#.#.###.###.#.#########.#.###.#.#####.#.#\n" +
-                    "#......z..#.#.#...#...#.....#.#.....#.#.#.#...#.....#.......#.#.#.#.#...#...#.#.#\n" +
-                    "#########.#.#.#.#######.###.#.#.###.#.#.#.###.###########.###.#.#.#.#######.#.#.#\n" +
-                    "#.#.......#.#...#.....#.#.#.#.#.#...#.#.#.#.#.............#...#.#.......#...#.#.#\n" +
-                    "#.#.#######.#.###.#.#.#.#.#.#.#.#.###.#.#.#.###############.###.#######.#.###.#.#\n" +
-                    "#...#.......#...#.#.#.#...#...#.#...#.#.#....j#...#...#....d#...#...#...#...#.#.#\n" +
-                    "#.###.#########.###.#.###.#####.#####.#.#####.#.###.#.#.#######.#.#.#.#####.#.#.#\n" +
-                    "#...#.#.......#.#...#...#...#.#.....#...#...#.#.....#.#.Z.#.....#.#...#.....#.#.#\n" +
-                    "#D###.#####.###.#.#####.###.#.#####.###.###.#.#######.###.###.###.#######.###.#.#\n" +
-                    "#.#...#...#..n#...#.N.#.#...#.....#.....#...#.....#...#.#...#.....#.....#.#...#.#\n" +
-                    "###.###.#.###.#######.#.#.#####.#.#######.#######.#.#.#.###.#.#####.###.#.#.###W#\n" +
-                    "#...#...#.............#.#.....#.#.....M.#.#.......#.#...#...#.......#.....#...#.#\n" +
-                    "#.###.#.###############.#####.###.#####.#.#.#######.###.#.#######.#####.#####.#.#\n" +
-                    "#.#.P.#...#...#.......#.#...#.....#...#.#.#...#.....#...#...#.#...#...#.#.....#i#\n" +
-                    "#.#######.#.#.#.#####.#.#.#.#######.#.#.#.###.###.###.#####.#.#.###.#.###.#####.#\n" +
-                    "#.......#...#.......#...#.#.......#.#...#...#....f#.E.#...#.#.....#.#.#...#.O.#.#\n" +
-                    "#.#####.#################.###.#####.#####.#########.#####.#.#######X#.#.###.#.###\n" +
-                    "#.#.#...#...#...T...#.A.#...#..k..#.#...#.#...#...#.#...#.#.....#...#.#.....#...#\n" +
-                    "#.#.#.###.#.#.#####.#.#.###.#####.#.#.#.#.#.#.#.#.#.#.#.#.#####.#.###.#########.#\n" +
-                    "#...#.....#.......#...#.........#.Y...#.#..s#...#..g..#.......#v..#............l#\n" +
-                    "#################################################################################";
+    static List<String> example4 = List.of(
+            "########################",
+            "#@..............ac.GI.b#",
+            "###d#e#f################",
+            "###A#B#C################",
+            "###g#h#i################",
+            "########################"
+    );
 }
