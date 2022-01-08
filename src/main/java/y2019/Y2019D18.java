@@ -33,8 +33,7 @@ public class Y2019D18 {
             assertThat(shortestStepsToAllKeys(example4)).isEqualTo(81);
             out.println("example 4 ok");
 
-            // 4274 too high
-            out.println(shortestStepsToAllKeys(input));
+            assertThat(shortestStepsToAllKeys(input)).isEqualTo(4250);
 
             // 2
         } finally {
@@ -153,12 +152,12 @@ public class Y2019D18 {
             List<ReachablePoint> reachable = reachableCache.computeIfAbsent(curr.location,
                     (p) -> {
                         ArrayList<ReachablePoint> acc = new ArrayList<>();
-                        HashSet<Point> visited = new HashSet<>();
-                        visited.add(p);
-                        findReachable(1, new Point(p.x + 1, p.y), visited, acc);
-                        findReachable(1, new Point(p.x - 1, p.y), visited, acc);
-                        findReachable(1, new Point(p.x, p.y + 1), visited, acc);
-                        findReachable(1, new Point(p.x, p.y - 1), visited, acc);
+                        Map<Point, Integer>  bestVisitedDist = new HashMap<>();
+                        bestVisitedDist.put(p, 0);
+                        findReachable(1, new Point(p.x + 1, p.y), bestVisitedDist, acc);
+                        findReachable(1, new Point(p.x - 1, p.y), bestVisitedDist, acc);
+                        findReachable(1, new Point(p.x, p.y + 1), bestVisitedDist, acc);
+                        findReachable(1, new Point(p.x, p.y - 1), bestVisitedDist, acc);
                         return acc;
                     });
 
@@ -186,10 +185,12 @@ public class Y2019D18 {
             }
         }
 
-        private void findReachable(int dist, Point location, Set<Point> visited, List<ReachablePoint> reachable) {
-            if (!visited.add(location)) {
+        private void findReachable(int dist, Point location, Map<Point, Integer> bestVisitedDist, List<ReachablePoint> reachable) {
+            Integer prevDist = bestVisitedDist.get(location);
+            if (prevDist != null && prevDist <= dist) {
                 return; // already visited
             }
+            bestVisitedDist.put(location, dist);
 
             char c = map[location.y][location.x];
             if (isKey(c) || isDoor(c)) {
@@ -197,10 +198,10 @@ public class Y2019D18 {
             } else if (c == '#') {
                 return;
             } else if (c == '.' || c == '@') {
-                findReachable(dist + 1, new Point(location.x + 1, location.y), visited, reachable);
-                findReachable(dist + 1, new Point(location.x - 1, location.y), visited, reachable);
-                findReachable(dist + 1, new Point(location.x, location.y + 1), visited, reachable);
-                findReachable(dist + 1, new Point(location.x, location.y - 1), visited, reachable);
+                findReachable(dist + 1, new Point(location.x + 1, location.y), bestVisitedDist, reachable);
+                findReachable(dist + 1, new Point(location.x - 1, location.y), bestVisitedDist, reachable);
+                findReachable(dist + 1, new Point(location.x, location.y + 1), bestVisitedDist, reachable);
+                findReachable(dist + 1, new Point(location.x, location.y - 1), bestVisitedDist, reachable);
             } else {
                 throw new IllegalArgumentException("for " + c);
             }
