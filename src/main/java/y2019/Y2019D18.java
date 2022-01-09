@@ -44,18 +44,17 @@ public class Y2019D18 {
         }
     }
 
-
     private static int shortestStepsToAllKeys(List<String> input, boolean part2) {
         KeyMap map = new KeyMap(input, part2);
 
-        PriorityQueue<SearchState> searchQueue = new PriorityQueue<>();
+        PriorityQueue<SearchStateWithDist> searchQueue = new PriorityQueue<>();
         Map<SearchState, Integer> minDist = new HashMap<>();
-        searchQueue.add(new SearchState(map.startLoc, 0, 0, map));
+        searchQueue.add(new SearchStateWithDist(new SearchState(map.startLoc, 0), 0, map));
 
         long lastReportTimeMillis = System.currentTimeMillis();
         while (true) {
-            SearchState curr = searchQueue.poll();
-            if (curr.collectedKeys == map.allKeysAsBitSet) {
+            SearchStateWithDist curr = searchQueue.poll();
+            if (curr.state.collectedKeys == map.allKeysAsBitSet) {
                 return curr.dist;
             }
 
@@ -65,10 +64,10 @@ public class Y2019D18 {
             }
 
             map.forEachNeighbour(curr, neighbour -> {
-                Integer prevDist = minDist.get(neighbour);
+                Integer prevDist = minDist.get(neighbour.state);
                 if (prevDist == null || prevDist > neighbour.dist) {
                     searchQueue.add(neighbour);
-                    minDist.put(neighbour, neighbour.dist);
+                    minDist.put(neighbour.state, neighbour.dist);
                 }
             });
         }
@@ -95,16 +94,20 @@ public class Y2019D18 {
     }
 
     @Value
-    static class SearchState implements Comparable<SearchState> {
+    static class SearchState {
         List<Point> locations;
+        int collectedKeys;
+    }
+
+    @Value
+    static class SearchStateWithDist implements Comparable<SearchStateWithDist> {
+        SearchState state;
         int dist;
         int distPlusHeuristic;
-        int collectedKeys;
 
-        public SearchState(List<Point> locations, int dist, int collectedKeys, KeyMap keyMap) {
-            this.locations = locations;
+        public SearchStateWithDist(SearchState loc, int dist, KeyMap keyMap) {
+            this.state = loc;
             this.dist = dist;
-            this.collectedKeys = collectedKeys;
 
             // A* -- need to compute the heuristic: an estimate of the distance from here
             // to the goal that is not an over-estimate.
@@ -112,17 +115,18 @@ public class Y2019D18 {
             // This is very difficult here, as we may re-use the steps to reach several keys.
             // We will use min manhattan distance to any remaining key + 1 for each other
             // uncollected key.
+            // This does seem to help a bit v.s. plain Dijkstra, despite the cost of computing it.
             int uncollectedKeyCount = 0;
             int minDistToAnyKey = Integer.MAX_VALUE;
             for (Map.Entry<Character, Point> e : keyMap.keyLocations.entrySet()) {
                 char key = e.getKey();
                 Point keyLoc = e.getValue();
-                if (!CharSetAsBits.contains(collectedKeys, key)) {
+                if (!CharSetAsBits.contains(loc.collectedKeys, key)) {
                     uncollectedKeyCount++;
-                    for (Point loc : locations) {
+                    for (Point robot : loc.locations) {
                         minDistToAnyKey = Math.min(
                                 minDistToAnyKey,
-                                Math.abs(loc.x - keyLoc.x) + Math.abs(loc.y - keyLoc.y));
+                                Math.abs(robot.x - keyLoc.x) + Math.abs(robot.y - keyLoc.y));
                     }
                 }
             }
@@ -132,17 +136,17 @@ public class Y2019D18 {
         }
 
         @Override
-        public int compareTo(SearchState that) {
+        public int compareTo(SearchStateWithDist that) {
             return Integer.compare(this.distPlusHeuristic, that.distPlusHeuristic);
         }
 
         @Override
         public String toString() {
             return "SearchState{" +
-                    "locations=" + locations +
+                    "locations=" + state.locations +
+                    ", collectedKeys=" + CharSetAsBits.toString(state.collectedKeys) +
                     ", dist=" + dist +
                     ", distPlusHeuristic=" + distPlusHeuristic +
-                    ", collectedKeys=" + CharSetAsBits.toString(collectedKeys) +
                     '}';
         }
     }
@@ -205,9 +209,9 @@ public class Y2019D18 {
             }
         }
 
-        public void forEachNeighbour(SearchState curr, Consumer<SearchState> callback) {
+        public void forEachNeighbour(SearchStateWithDist curr, Consumer<SearchStateWithDist> callback) {
 
-            for (Point location : curr.locations) {
+            for (Point location : curr.state.locations) {
                 List<ReachablePoint> reachable = reachableCache.computeIfAbsent(location,
                         (p) -> {
                             ArrayList<ReachablePoint> acc = new ArrayList<>();
@@ -222,21 +226,23 @@ public class Y2019D18 {
 
                 for (ReachablePoint reachablePoint : reachable) {
                     char c = reachablePoint.val;
-                    if (isKey(c) && !CharSetAsBits.contains(curr.collectedKeys, c)) {
+                    if (isKey(c) && !CharSetAsBits.contains(curr.state.collectedKeys, c)) {
                         // move to key and pick it up:
                         callback.accept(
-                                new SearchState(
-                                        replace(curr.locations, location, reachablePoint.location),
+                                new SearchStateWithDist(
+                                        new SearchState(
+                                                replace(curr.state.locations, location, reachablePoint.location),
+                                                CharSetAsBits.add(curr.state.collectedKeys, c)),
                                         curr.dist + reachablePoint.dist,
-                                        CharSetAsBits.add(curr.collectedKeys, c),
                                         this));
-                    } else if (isKey(c) || (isDoor(c) && CharSetAsBits.contains(curr.collectedKeys, Character.toLowerCase(c)))) {
+                    } else if (isKey(c) || (isDoor(c) && CharSetAsBits.contains(curr.state.collectedKeys, Character.toLowerCase(c)))) {
                         // move to the unlocked door or to the already collected key
                         callback.accept(
-                                new SearchState(
-                                        replace(curr.locations, location, reachablePoint.location),
+                                new SearchStateWithDist(
+                                        new SearchState(
+                                                replace(curr.state.locations, location, reachablePoint.location),
+                                                curr.state.collectedKeys),
                                         curr.dist + reachablePoint.dist,
-                                        curr.collectedKeys,
                                         this));
                     } else if (isDoor(c)) {
                         // blocked
@@ -284,8 +290,6 @@ public class Y2019D18 {
                 throw new IllegalArgumentException("for " + c);
             }
         }
-
-
     }
 
     static class CharSetAsBits {

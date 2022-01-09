@@ -1,379 +1,276 @@
 package y2019;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Resources;
 import lombok.Value;
 
 import java.awt.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 import static java.lang.System.out;
 
 public class Y2019D20 {
 
-    private static boolean LOG = false;
-
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
+        try {
+            List<String> input = Resources.readLines(Resources.getResource("y2019/Y2019D20.txt"), StandardCharsets.UTF_8);
 
-        // 1
-        assertThat(shortestPathAAtoZZ(example1)).isEqualTo(23);
-        out.println("example 1 ok");
-        assertThat(shortestPathAAtoZZ(example2)).isEqualTo(58);
-        out.println("example 2 ok");
-        out.println(shortestPathAAtoZZ(input));
+            // 1
+            assertThat(shortestPathAAtoZZ(example1, false)).isEqualTo(23);
+            out.println("example 1 ok");
+            assertThat(shortestPathAAtoZZ(example2, false)).isEqualTo(58);
+            out.println("example 2 ok");
+            out.println(shortestPathAAtoZZ(input, false));
 
-        // 2
-//        out.println(timeToFillWithOxygen(input));
-
-        out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
-    }
-
-    private static int shortestPathAAtoZZ(String mazeSpec) {
-        parse(mazeSpec);
-        return -1; // qq
+            // 2
+            out.println(shortestPathAAtoZZ(input, true));
+        } finally {
+            out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        }
     }
 
     private static class Maze {
+        final Set<Point> walkableSpaces;
+        final Map<Point, Point> outerPortals;
+        final Map<Point, Point> innerPortals;
+        final Point aa;
+        final Point zz;
+        final boolean isPart2;
 
-    }
+        public Maze(List<String> mazeSpec, boolean isPart2) {
+            this.isPart2 = isPart2;
+            walkableSpaces = new HashSet<>();
+            Map<String, List<Point>> portalsByName = new HashMap<>();
+            for (int y = 0; y < mazeSpec.size(); y++) {
+                String line = mazeSpec.get(y);
+                for (int x = 0; x < line.length(); x++) {
+                    char c = line.charAt(x);
+                    if ('.' == c) {
+                        walkableSpaces.add(new Point(x, y));
+                    } else if ('A' <= c && 'Z' >= c) {
+                        // horiz label?
+                        if (x + 1 < line.length()) {
+                            char n = line.charAt(x + 1);
+                            if ('A' <= n && 'Z' >= n) {
+                                String label = c + "" + n;
+                                Point loc = x + 2 < line.length() && '.' == line.charAt(x + 2)
+                                        ? new Point(x + 2, y)
+                                        : new Point(x - 1, y);
+                                portalsByName.computeIfAbsent(label, v -> new ArrayList<>())
+                                        .add(loc);
+                            }
+                        }
+                        // vert label?
+                        if (y + 1 < mazeSpec.size()) {
+                            // IntelliJ has stripped trailing spaces from my input :-(
+                            char n = x < mazeSpec.get(y + 1).length()
+                                    ? mazeSpec.get(y + 1).charAt(x)
+                                    : ' ';
+                            if ('A' <= n && 'Z' >= n) {
+                                String label = c + "" + n;
+                                char nn = y + 2 < mazeSpec.size() && x < mazeSpec.get(y + 2).length()
+                                        ? mazeSpec.get(y + 2).charAt(x)
+                                        : ' ';
+                                Point loc = '.' == nn
+                                        ? new Point(x, y + 2)
+                                        : new Point(x, y - 1);
+                                portalsByName.computeIfAbsent(label, v -> new ArrayList<>())
+                                        .add(loc);
+                            }
+                        }
+                    }
+                }
+            }
 
-    private static Maze parse(String mazeSpec) {
-        // find portal labels
-        Map<Point, Point> portals = new HashMap<>();
-return null; // qq
-    }
+            int maxWalkableX = walkableSpaces.stream().mapToInt(p -> p.x).max().getAsInt();
+            int maxWalkableY = walkableSpaces.stream().mapToInt(p -> p.y).max().getAsInt();
+            innerPortals = new HashMap<>();
+            outerPortals = new HashMap<>();
+            Point aa = null;
+            Point zz = null;
+            for (Map.Entry<String, List<Point>> entry : portalsByName.entrySet()) {
+                String name = entry.getKey();
+                List<Point> locs = entry.getValue();
+                if ("AA".equals(name)) {
+                    aa = Iterables.getOnlyElement(locs);
+                } else if ("ZZ".equals(name)) {
+                    zz = Iterables.getOnlyElement(locs);
+                } else {
+                    checkState(locs.size() == 2);
 
-    private static int shortestStepsToAllKeys(String mapStr) {
-        String[] lines = mapStr.split("\n");
-        int height = lines.length;
-        int width = lines[0].length();
-        char[][] map = new char[height][];
-        for (int y = 0; y < height; y++) {
-            map[y] = lines[y].toCharArray();
+                    Point a = locs.get(0);
+                    Point b = locs.get(1);
+                    boolean aIsOuter = a.x == 2 || a.x == maxWalkableX || a.y == 2 || a.y == maxWalkableY;
+                    boolean bIsOuter = b.x == 2 || b.x == maxWalkableX || b.y == 2 || b.y == maxWalkableY;
+                    checkState(aIsOuter ^ bIsOuter);
+                    if (aIsOuter) {
+                        outerPortals.put(a, b);
+                        innerPortals.put(b, a);
+                    } else {
+                        innerPortals.put(a, b);
+                        outerPortals.put(b, a);
+                    }
+                }
+            }
+            this.aa = checkNotNull(aa);
+            this.zz = checkNotNull(zz);
         }
-        long keyCount = Arrays.stream(lines)
-                .flatMapToInt(line -> line.chars())
-                .filter(i -> isKey((char) i)).count();
 
-        Point entry = null;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                if (map[y][x] == '@') {
-                    checkState(entry == null);
-                    entry = new Point(x, y);
+        public void forEachNeighbour(SearchState curr, Consumer<SearchState> callback) {
+            Point p = curr.location;
+            Point right = new Point(p.x + 1, p.y);
+            if (walkableSpaces.contains(right)) {
+                callback.accept(new SearchState(right, curr.depth));
+            }
+            Point left = new Point(p.x - 1, p.y);
+            if (walkableSpaces.contains(left)) {
+                callback.accept(new SearchState(left, curr.depth));
+            }
+            Point down = new Point(p.x, p.y + 1);
+            if (walkableSpaces.contains(down)) {
+                callback.accept(new SearchState(down, curr.depth));
+            }
+            Point up = new Point(p.x, p.y - 1);
+            if (walkableSpaces.contains(up)) {
+                callback.accept(new SearchState(up, curr.depth));
+            }
+            if (isPart2) {
+                if (curr.depth > 0) {
+                    Point outer = outerPortals.get(p);
+                    if (outer != null) {
+                        callback.accept(new SearchState(outer, curr.depth - 1));
+                    }
+                }
+                Point inner = innerPortals.get(p);
+                if (inner != null) {
+                    callback.accept(new SearchState(inner, curr.depth + 1));
+                }
+            } else {
+                Point outer = outerPortals.get(p);
+                if (outer != null) {
+                    callback.accept(new SearchState(outer, 0));
+                }
+                Point inner = innerPortals.get(p);
+                if (inner != null) {
+                    callback.accept(new SearchState(inner, 0));
                 }
             }
         }
-        checkState(entry != null);
+    }
 
-        PriorityQueue<SearchState> searchQueue = new PriorityQueue<>();
-        Map<String, Integer> shortestDistByKeySet = new HashMap<>();
-        searchQueue.add(new SearchState(entry, 0, ""));
+    private static int shortestPathAAtoZZ(List<String> mazeSpec, boolean isPart2) {
+        Maze maze = new Maze(mazeSpec, isPart2);
+
+        PriorityQueue<SearchStateWithDist> searchQueue = new PriorityQueue<>();
+        Map<SearchState, Integer> minDist = new HashMap<>();
+        searchQueue.add(new SearchStateWithDist(new SearchState(maze.aa, 0), 0));
+
+        long lastReportTimeMillis = System.currentTimeMillis();
         while (true) {
-            SearchState curr = searchQueue.poll();
-            log("at " + curr);
-            if (curr.collectedKeys.length() == keyCount) {
+            SearchStateWithDist curr = searchQueue.poll();
+            if (curr.state.depth == 0 && maze.zz.equals(curr.state.location)) {
                 return curr.dist;
             }
-            List<ReachableKey> reachableKeys = curr.findReachableKeys(map);
-            for (ReachableKey reachableKey : reachableKeys) {
-                String newCollectedKeys = add(curr.collectedKeys, reachableKey.key);
-                searchQueue.add(new SearchState(
-                        reachableKey.location,
-                        reachableKey.newDist,
-                        newCollectedKeys));
-                // qq how to discard bad paths? Need an admissable heuristic, but dist is no good, see example2
-//                shortestDistByKeySet.compute(newCollectedKeys, (k, oldDist) -> {
-//                    if (oldDist == null || oldDist > reachableKey.newDist) {
-//                        SearchState ss = new SearchState(
-//                                reachableKey.location,
-//                                reachableKey.newDist,
-//                                newCollectedKeys);
-//                        log("enqueue " + ss);
-//                        searchQueue.add(ss);
-//                        return reachableKey.newDist;
-//                    } else {
-//                        log("ignore fetch of %s for %s as slower than previous alternative dist %s",
-//                                reachableKey.key, reachableKey.newDist, oldDist);
-//                        return oldDist;
-//                    }
-//                });
+
+            if (System.currentTimeMillis() - lastReportTimeMillis > 10000) {
+                lastReportTimeMillis = System.currentTimeMillis();
+                out.println("Queue len = " + searchQueue.size() + " Current node = " + curr);
             }
+
+            int nextDist = curr.dist + 1;
+            maze.forEachNeighbour(curr.state, neighbour -> {
+                Integer prevDist = minDist.get(neighbour);
+                if (prevDist == null || prevDist > nextDist) {
+                    searchQueue.add(new SearchStateWithDist(neighbour, nextDist));
+                    minDist.put(neighbour, nextDist);
+                }
+            });
         }
-    }
-
-    private static void log(String format, Object... args) {
-        if (LOG) {
-            out.printf(format + "\n", args);
-        }
-    }
-
-    private static String add(String keys, char key) {
-        int idxToAdd;
-        for (idxToAdd = 0; idxToAdd < keys.length(); idxToAdd++) {
-            if (keys.charAt(idxToAdd) > key) {
-                break;
-            }
-        }
-        return keys.substring(0, idxToAdd) + key + keys.substring(idxToAdd);
-    }
-
-    static void testAdd() {
-        assertThat(add("", 'x')).isEqualTo("x");
-        assertThat(add("a", 'x')).isEqualTo("ax");
-        assertThat(add("x", 'a')).isEqualTo("ax");
-        assertThat(add("acd", 'b')).isEqualTo("abcd");
-    }
-
-    private static boolean isKey(char c) {
-        return c >= 'a' && c <= 'z';
-    }
-
-    private static boolean isDoor(char c) {
-        return c >= 'A' && c <= 'Z';
     }
 
     @Value
-    static class ReachableKey {
-        Point location;
-        char key;
-        int newDist;
-    }
-
-    @Value
-    static class SearchState implements Comparable<SearchState> {
-        Point location;
+    static class SearchStateWithDist implements Comparable<SearchStateWithDist> {
+        SearchState state;
         int dist;
-        String collectedKeys;
 
         @Override
-        public int compareTo(SearchState that) {
+        public int compareTo(SearchStateWithDist that) {
             return Integer.compare(this.dist, that.dist);
-        }
-
-        public List<ReachableKey> findReachableKeys(char[][] map) {
-            // Looks like the maze is acyclic?
-            // try a depth first search?
-            List<ReachableKey> reachableKeys = new ArrayList<>();
-            findReachableKeys(map, dist, location, new HashSet<>(), reachableKeys);
-            return reachableKeys;
-        }
-
-        private void findReachableKeys(char[][] map, int dist, Point location, Set<Point> visited, List<ReachableKey> reachableKeys) {
-            if (!visited.add(location)) {
-                return; // already visited
-            }
-            char c = map[location.y][location.x];
-            checkState(dist <= 200); // catch runaway
-            if (isKey(c) && !contains(collectedKeys, c)) {
-                reachableKeys.add(new ReachableKey(location, c, dist));
-            } else if (c == '#') {
-                return;
-            } else if (isDoor(c) && !contains(collectedKeys, Character.toLowerCase(c))) {
-                return;
-            } else if (c == '.' || c == '@' || isKey(c) || isDoor(c)) {
-                findReachableKeys(map, dist + 1, new Point(location.x + 1, location.y), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x - 1, location.y), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x, location.y + 1), visited, reachableKeys);
-                findReachableKeys(map, dist + 1, new Point(location.x, location.y - 1), visited, reachableKeys);
-            } else {
-                throw new IllegalArgumentException("for " + c);
-            }
-        }
-
-        private boolean contains(String keys, char k) {
-            return keys.indexOf(k) >= 0;
         }
     }
 
-    static String example1 =
-            "         A           \n" +
-                    "         A           \n" +
-                    "  #######.#########  \n" +
-                    "  #######.........#  \n" +
-                    "  #######.#######.#  \n" +
-                    "  #######.#######.#  \n" +
-                    "  #######.#######.#  \n" +
-                    "  #####  B    ###.#  \n" +
-                    "BC...##  C    ###.#  \n" +
-                    "  ##.##       ###.#  \n" +
-                    "  ##...DE  F  ###.#  \n" +
-                    "  #####    G  ###.#  \n" +
-                    "  #########.#####.#  \n" +
-                    "DE..#######...###.#  \n" +
-                    "  #.#########.###.#  \n" +
-                    "FG..#########.....#  \n" +
-                    "  ###########.#####  \n" +
-                    "             Z       \n" +
-                    "             Z       ";
+    @Value
+    static class SearchState {
+        Point location;
+        int depth;
+    }
 
-    static String example2 =
-            "                   A               \n" +
-                    "                   A               \n" +
-                    "  #################.#############  \n" +
-                    "  #.#...#...................#.#.#  \n" +
-                    "  #.#.#.###.###.###.#########.#.#  \n" +
-                    "  #.#.#.......#...#.....#.#.#...#  \n" +
-                    "  #.#########.###.#####.#.#.###.#  \n" +
-                    "  #.............#.#.....#.......#  \n" +
-                    "  ###.###########.###.#####.#.#.#  \n" +
-                    "  #.....#        A   C    #.#.#.#  \n" +
-                    "  #######        S   P    #####.#  \n" +
-                    "  #.#...#                 #......VT\n" +
-                    "  #.#.#.#                 #.#####  \n" +
-                    "  #...#.#               YN....#.#  \n" +
-                    "  #.###.#                 #####.#  \n" +
-                    "DI....#.#                 #.....#  \n" +
-                    "  #####.#                 #.###.#  \n" +
-                    "ZZ......#               QG....#..AS\n" +
-                    "  ###.###                 #######  \n" +
-                    "JO..#.#.#                 #.....#  \n" +
-                    "  #.#.#.#                 ###.#.#  \n" +
-                    "  #...#..DI             BU....#..LF\n" +
-                    "  #####.#                 #.#####  \n" +
-                    "YN......#               VT..#....QG\n" +
-                    "  #.###.#                 #.###.#  \n" +
-                    "  #.#...#                 #.....#  \n" +
-                    "  ###.###    J L     J    #.#.###  \n" +
-                    "  #.....#    O F     P    #.#...#  \n" +
-                    "  #.###.#####.#.#####.#####.###.#  \n" +
-                    "  #...#.#.#...#.....#.....#.#...#  \n" +
-                    "  #.#####.###.###.#.#.#########.#  \n" +
-                    "  #...#.#.....#...#.#.#.#.....#.#  \n" +
-                    "  #.###.#####.###.###.#.#.#######  \n" +
-                    "  #.#.........#...#.............#  \n" +
-                    "  #########.###.###.#############  \n" +
-                    "           B   J   C               \n" +
-                    "           U   P   P               ";
+    static List<String> example1 = List.of(
+            "         A           ",
+            "         A           ",
+            "  #######.#########  ",
+            "  #######.........#  ",
+            "  #######.#######.#  ",
+            "  #######.#######.#  ",
+            "  #######.#######.#  ",
+            "  #####  B    ###.#  ",
+            "BC...##  C    ###.#  ",
+            "  ##.##       ###.#  ",
+            "  ##...DE  F  ###.#  ",
+            "  #####    G  ###.#  ",
+            "  #########.#####.#  ",
+            "DE..#######...###.#  ",
+            "  #.#########.###.#  ",
+            "FG..#########.....#  ",
+            "  ###########.#####  ",
+            "             Z       ",
+            "             Z       ");
 
-    static String input =
-            "                                       U         R     Q     F           T C   J                                         \n" +
-                    "                                       S         E     V     C           Q G   C                                         \n" +
-                    "  #####################################.#########.#####.#####.###########.#.###.#######################################  \n" +
-                    "  #...#...................#.........#.......#.....#.#...#...#.#...#.......#.#...#...#.#.........#.#.#.....#...#...#.#.#  \n" +
-                    "  #.#.###.#.###.#.#######.###.###.#.###.#####.#.###.#.###.#.#.#.#####.###.#.#.#.#.###.#.#########.#.#.#.###.###.###.#.#  \n" +
-                    "  #.#...#.#...#.#.#...#.......#...#...#.#.#...#...#.......#.#.....#...#.....#.#...#.................#.#.#.#.#...#.....#  \n" +
-                    "  #####.#########.###.###.#####.###.#.#.#.###.#############.###.###.#.#####.#.#.###.#####.#.#.###.#####.#.#.###.###.###  \n" +
-                    "  #.......#.........#.....#.#...#...#.......#.....#.#.....#.#...#.#.#.....#.#.#.....#.#...#.#.#.#.#.....#.....#.#.....#  \n" +
-                    "  #####.#.###.###.###.#.###.###.#.###.#.#.#####.#.#.###.#.#.#.###.###.#######.#.#####.#.#.#####.#.#####.###.###.#.#.#.#  \n" +
-                    "  #.#...#.#.#.#.#.#...#.#.....#.#.#...#.#...#...#...#...#...#.......#...#.#.#.#.#.....#.#.......#.#.......#.#.....#.#.#  \n" +
-                    "  #.###.###.###.#.#####.#.###.#########.#.#.###.#.#.#.###.#####.#.#####.#.#.#.###.#####.###.###.#####.#.#.#.###.#######  \n" +
-                    "  #...#.........#.#.#...#.#...........#.#.#.#...#.#.#.#...#.#...#.....#.....#...#.#.#.#.#.#...#.#.#...#.#...#.#...#...#  \n" +
-                    "  ###.###.#####.###.###########.#.###.###.#########.#.#####.###.#########.###.###.#.#.#.#.#######.#######.###.#.###.#.#  \n" +
-                    "  #.......#.#.#.........#.#.#...#...#...#.......#.#.#.#.#...........#.....#.........#...#.....#.#...#.#...#.......#.#.#  \n" +
-                    "  #####.#.#.#.#.###.###.#.#.#.#######.#.#.#.#.###.#.#.#.###.###.#######.#####.#.#########.#####.#.###.#.#####.###.###.#  \n" +
-                    "  #.#...#.#...#.#...#.#...#.......#...#...#.#.#.....#.....#.#.......#.#...#.#.#...............#...#.#...#.......#...#.#  \n" +
-                    "  #.#########.#######.###.###########.###.#########.#.#.#.#########.#.#.###.#.#.#####.#.#.#####.###.#.#.#.#.#########.#  \n" +
-                    "  #.......#.#...#.#.....#.#.#...#.....#.....#.......#.#.#.#...#.....#.....#...#.#.#...#.#.#.......#.#.#.#.#...#.#.#.#.#  \n" +
-                    "  ###.#####.###.#.#####.#.#.###.#####.###.#.#####.#.#.#######.#.#.#.###.#####.#.#.###.#####.###.#.#.###.###.###.#.#.#.#  \n" +
-                    "  #...#...#.#.#.#.#.#.#...#.#.......#...#.#.#.....#.#.....#.....#.#.#.......#.#.....#.#.#.#...#.#.#.....#.#.#.....#.#.#  \n" +
-                    "  ###.#.###.#.#.#.#.#.#.###.###.#.#.#.#.#######.###.###.#.#.#.#######.###.#####.#####.#.#.#.#.#########.#.#.###.###.#.#  \n" +
-                    "  #.....#.#.......#...#.#.#.#...#.#...#.#...#...#.#.#...#.#.#.#.#...#.#.#.#.#...#.#.#.#...#.#.#.#.......#.#...........#  \n" +
-                    "  ###.###.#######.###.#.#.#.#####.#.#.#####.#####.#.#.#######.#.###.#.#.###.#.###.#.###.###.###.###.###.#.#.#########.#  \n" +
-                    "  #...#...#.#.#.............#...#.#.#.#.#...#.#.#.#.#.......#.......#.......#...#.........#...#.#.#.#...............#.#  \n" +
-                    "  ###.###.#.#.#######.#.#.#.###.#####.#.#.###.#.#.#.#######.###.###.#######.#.#####.#######.###.#.#.#######.#.#########  \n" +
-                    "  #...#...#.....#.#...#.#.#.#...#...#.....#...#.....#.........#.#...#.....#.#.....#...#.#.#.......#.#.......#.........#  \n" +
-                    "  #.#.###.###.###.#########.###.#.#######.#.#######.#.#########.###.#.#.###.#.#####.###.#.###.#########.#.#.#########.#  \n" +
-                    "  #.#.#...........#.#...#.#...#.........#...#.#.....#.#.....#.#.#...#.#.....#.#.................#.#.#.#.#.#.....#.#.#.#  \n" +
-                    "  ###.###.#.#.#####.###.#.###.###.###.#.###.#.#.#####.#.###.#.#####.#.#######.#.###.#####.#######.#.#.#.###.#####.#.###  \n" +
-                    "  #...#.#.#.#...#.#.#.#...........#...#.....#...#...#...#.#.....#...#.......#...#.......#.....#...#...#.#.#.........#.#  \n" +
-                    "  #.#.#.###.#####.#.#.#####.#.#.#####.#####.#.#####.#####.#.#.#####.#######.#####.###.#######.###.#.#####.#.#########.#  \n" +
-                    "  #.#.#.#...#.#...#...#.#...#.#.#.#.....#.#.#.........#.#...#.....#.#.........#.....#.......#.#...#...#.#.#.........#.#  \n" +
-                    "  #.###.###.#.###.#.###.#########.###.#.#.#########.###.#.#.#.#.###.###.#########.###.#.#.#######.#.###.#.#.#########.#  \n" +
-                    "  #...#...#.#.#...#.....#.#.....#...#.#.....#.......#.....#.#.#.#...#.......#.......#.#.#...#.#...#...#.#.#...#.#.....#  \n" +
-                    "  #.###.#.#.#.#.###.#.###.#####.#.#########.#.#######.###########.###.###.#####.#######.#.###.#.#.###.#.#.#.###.###.###  \n" +
-                    "  #.#.#.#...#.#...#.#.......#.#.#.#        B J       D           B   E   B     O      #.#.#...#.#.#.#.#.#...#.#.#.....#  \n" +
-                    "  #.#.###.#.#.###.#####.#.###.#.#.#        M B       Z           Z   P   C     K      #####.#.###.#.#.#.###.#.#.###.###  \n" +
-                    "  #...#.#.#.....#.#.#.#.#.#.#.#...#                                                   #...#.#.....#...........#.....#.#  \n" +
-                    "  #.###.###.#####.#.#.###.#.#.#.#.#                                                   #.#####.###.#.#####.###.#.###.#.#  \n" +
-                    "  #.....#...#.#.....#...#.......#.#                                                   #.......#...#.#.#.....#...#......MZ\n" +
-                    "  #####.#.#.#.###.###.#######.###.#                                                   ###.#.###.###.#.###.###.#.###.#.#  \n" +
-                    "ZR......#.#...#.........#.....#....FC                                               HM..#.#.#.#...#...#.#...#.#.#...#.#  \n" +
-                    "  #.###.###.#.#.#######.###.#####.#                                                   #.#.###.###.#.###.#.#.#########.#  \n" +
-                    "  #.#.......#.....#.........#...#.#                                                   #...#.#.#.#.....#.#.#...#.....#.#  \n" +
-                    "  #.###.#.#####################.###                                                   #####.#.#.#######.#####.#####.###  \n" +
-                    "  #.#...#.#.....#...#.#.#.......#.#                                                   #.#...........#...#...#.#........ZZ\n" +
-                    "  #########.#.#.###.#.#.###.###.#.#                                                   #.#.#.#####.#####.###.###.#######  \n" +
-                    "  #.#.......#.#.#.#.#.......#.#...#                                                   #...#...#...#.#.#...#.#.........#  \n" +
-                    "  #.###.#####.###.#.#.#.#####.###.#                                                   #.###.###.###.#.#.#.#.#########.#  \n" +
-                    "  #...#.....#.#.....#.#.#.........#                                                 QV..#...#.......#.#.#...#.#.....#..BZ\n" +
-                    "  #.#######.#.###.#.#.#####.#######                                                   #.#########.###.#.###.#.#.###.#.#  \n" +
-                    "HM..........#.....#.......#........TQ                                                 #...#.#.#.........#.#.....#.....#  \n" +
-                    "  #.#.#############################                                                   #####.#.###########.#####.#.#####  \n" +
-                    "  #.#.#.#.......#...........#.....#                                                   #.................#.....#.#.#.#..OK\n" +
-                    "  #####.#####.#.#.#.###.###.###.#.#                                                   #.#.#.###.###.#.#.#.#########.#.#  \n" +
-                    "AA..#.....#.#.#...#...#...#.#...#.#                                                 US..#.#...#.#...#.#.....#.....#...#  \n" +
-                    "  #.#.#####.#.#############.#.#.#.#                                                   #.###.#######.#.#####.#.###.#.###  \n" +
-                    "EK....#.....#...#.......#.#.#.#.#..UG                                                 #.#.#.#.#.....#.#.....#.#...#...#  \n" +
-                    "  ###.###.#.#.#####.#####.#.#.###.#                                                   #.#.###.###########.###.#.#####.#  \n" +
-                    "  #.......#...#...#.....#.....#...#                                                   #.#.....#...#.#.#.......#.......#  \n" +
-                    "  #.#############.#.###############                                                   #####.###.###.#.#################  \n" +
-                    "  #.#...........................#.#                                                   #...................#............II\n" +
-                    "  ###.###.#.#.#.###.#.#######.###.#                                                   #.#.#####.#########.#.###.#.###.#  \n" +
-                    "  #.#...#.#.#.#.#.#.#.#.........#.#                                                 SJ..#...#.....#...#.#...#...#...#.#  \n" +
-                    "  #.#.#####.#####.#.#########.###.#                                                   #############.###.#####.#########  \n" +
-                    "UG......#.....#...#.#...#...#.#....QM                                               KI..............#.......#...#.#...#  \n" +
-                    "  #.#.#.#.#####.#####.#####.#.#.###                                                   #.###.###.###.#.#####.#.###.###.#  \n" +
-                    "  #.#.#.#.#...#...#.....#...#.....#                                                   #.#.....#.#.....#.....#.#.....#.#  \n" +
-                    "  #########.###.###.#####.#######.#                                                   #.###.###.###.###.#########.#.#.#  \n" +
-                    "  #.#.......#...................#.#                                                   #.#.#.#...#.....#.#...#.....#....EP\n" +
-                    "  #.#####.#.#.#####.#.#.#.#.###.###                                                   #.#.###.###.#####.#.#.#####.#.#.#  \n" +
-                    "  #.......#.#...#...#.#.#.#.#.#...#                                                   #.....#...#...#.....#.......#.#.#  \n" +
-                    "  #.#.#####.#.###.###.###.###.#.###                                                   #.#.#.###########.#######.#######  \n" +
-                    "  #.#...#.#.#...#.#...#...#........NU                                                 #.#.#.#.#.....#.#.#.....#.#...#.#  \n" +
-                    "  #####.#.#.#.#########.#.#####.###                                                   #######.#####.#.###.###.###.#.#.#  \n" +
-                    "BC......#.......#...#.#.#.#...#...#                                                   #...#...#.#.....#.....#.....#....KI\n" +
-                    "  ###############.###.#####.#.###.#                                                   ###.###.#.#.#.#.#####.#####.###.#  \n" +
-                    "  #...........#...........#.#.#.#.#                                                   #.#.#.#.#...#.#.#.......#...#...#  \n" +
-                    "  #.#######.#.#.###.#.#####.###.#.#                                                   #.#.#.#.#.#.#.###.###.#######.###  \n" +
-                    "  #.......#.#...#.#.#.....#...#.#.#                                                 ZC..........#.#.......#.#...#...#.#  \n" +
-                    "  #.###.#####.#.#.###.#####.###.###                                                   #.###.#.#.#####.#####.###.#####.#  \n" +
-                    "  #...#...#.#.#...#.......#.#...#..RK                                                 #...#.#.#.#.#.......#.#.....#....SJ\n" +
-                    "  #.#######.#.#.#######.###.###.#.#                                                   #########.#.###.#.#.#####.#.###.#  \n" +
-                    "ZC....#...#.#.#...#.#.#...........#                                                 JC....#.#.#.#...#.#.#.#.#.#.#...#.#  \n" +
-                    "  #######.#.#######.#.###.###.#####                                                   #.#.#.#.###.#########.#.#.###.#.#  \n" +
-                    "NU......#...#...#...#...#.#.#.#.#..RE                                                 #.#...#.......#...#.#.#...#...#.#  \n" +
-                    "  #.#####.###.#.#.#.#.#.###.###.#.#                                                   ###.#######.#.#.###.#.#.###.###.#  \n" +
-                    "  #...........#...#...#...........#                                                   #...........#.............#.....#  \n" +
-                    "  #.#.###.#.###.#####.#####.#.#.###      W         E     Z   C         I     M        ###.#.#.#.#.###.###.###.#.#.###.#  \n" +
-                    "  #.#.#.#.#...#...#...#.....#.#...#      Z         K     R   G         I     Z        #...#.#.#.#.#...#...#...#.#.#...#  \n" +
-                    "  ###.#.###.#####.###.#.###.#.#.#.#######.#########.#####.###.#########.#####.#########.#.#.#.#.#############.###.#####  \n" +
-                    "  #.....#.#.#.#.#.#...#.#...#.#.#...#.#.#.#.#.......#.#.#...#.......#.....#...........#.#.#.#.#.....#.........#.......#  \n" +
-                    "  ###.#.#.#.#.#.#####.#####.#.#######.#.#.#.#.#######.#.###.###.#####.#.#.###.#####.#####.#####.#.#####.###.#.#####.###  \n" +
-                    "  #...#.#.........#...#.#...#.#.#.#.#...#...#.......#.....#...#...#...#.#.#.#.#.#.....#.....#...#.#.#...#...#.....#...#  \n" +
-                    "  #.#.###.###.###.#.#.#.#####.#.#.#.###.###.#######.#.###.#.#####.###.#####.###.#.#############.#.#.#######.#.#.#.###.#  \n" +
-                    "  #.#.#...#.....#.#.#.....#...#.....#.#.........#...#...#.....#...#.....#...#.#.......#...#...#.#.#.#.#.....#.#.#...#.#  \n" +
-                    "  #.#####.###.#.###.###.###########.#.#.#####.#####.#.#####.###.#####.#####.#.#####.###.###.#######.#.#####.#####.#####  \n" +
-                    "  #.#.....#...#.#.#.#.#.#.#.................#.#.#...#.#.#.....#.....#.....#.#.....#.......#.....#...#...#...#.......#.#  \n" +
-                    "  #.###.#.#.#.###.###.#.#.#####.###.###.#######.#.#.#.#.#.###.#.#.#.#.#.###.#.###.#.#.#.###.#######.#.###.#.#.#.#.###.#  \n" +
-                    "  #.#.#.#.#.#.....#.......#.......#.#...#.#.#.....#.#...#.#.#.#.#.#.#.#.#.......#...#.#.......#.........#.#.#.#.#.....#  \n" +
-                    "  #.#.#########.#.###.#.#####.###.#.###.#.#.#.#.###.#.#####.#######.#.###.#.#.#.#######.#######.#####.#####.###.#.#.#.#  \n" +
-                    "  #.........#...#.#...#.#.......#.#...#.#...#.#.#...#.....#.........#...#.#.#.#.....#...............#...#.....#.#.#.#.#  \n" +
-                    "  #.#############.###.###.#.#######.###.#.#.#######.#.###.#####.###.#.#############.###.#.#####.#.###.#.#.#####.###.#.#  \n" +
-                    "  #.....#...#.#...#.#.#.#.#.#.#.#.#.#.....#.#.#.....#...#.#.......#.#...#...#.....#...#.#.....#.#.#...#.#.#.#.....#.#.#  \n" +
-                    "  #.###.#.###.#####.###.#####.#.#.#.###.#####.###.###.#####.#.###.###.#####.#.###.#.###########.###.#.###.#.###.#######  \n" +
-                    "  #.#.#.....#.........#.#.........#.#...#.#...#.#.#.#.#...#.#...#...#.#.#.....#.#.......#.....#...#.#...#.....#.......#  \n" +
-                    "  #.#.#.#####.#.#.###.#.#####.#.#.#.###.#.###.#.#.#.#.###.###.#####.#.#.#####.#######.###.###.#####.#.###.#######.###.#  \n" +
-                    "  #...#...#...#.#.#.#.....#...#.#.#.#.....#.........#.......#.#...#.#...#.#.......#.#.......#.....#.#...#.#...#.....#.#  \n" +
-                    "  #.#.#.#####.#####.#.#.#####.###.#######.###.#.###.#######.#####.#.###.#.###.#####.###.#.#############.###.###.###.#.#  \n" +
-                    "  #.#.#.....#...#.....#.....#.#...#...#...#.#.#.#.#...#.......#.#...#.#.#...#.........#.#.....#.#.............#.#.#.#.#  \n" +
-                    "  #.#.###.#########.#######.#####.###.###.#.#.###.#####.###.#.#.#.###.#.#.#.###.#.###.#.#.#.#.#.#.###.#####.#.#.#.#.###  \n" +
-                    "  #.#.#...#.........#.#...................#.......#.......#.#.#...#.#...#.#.#...#...#.#.#.#.#.#...#.......#.#.#.#.....#  \n" +
-                    "  #.#####.#####.###.#.###.###.###.#.###.###.#.###.#######.#.#####.#.#.###.#.#.###.#########.#######.###.#######.###.#.#  \n" +
-                    "  #.#.....#.#...#.#.#.....#...#...#.#.....#.#...#.#.......#.#.......#...#.#.#...#.......#.#.....#.....#.#.#.#.....#.#.#  \n" +
-                    "  #####.###.#.###.#.#.#.#.###.###.#.###.#####.#####.###.###########.#.#.#.#.#.###.###.#.#.#########.###.#.#.###.###.###  \n" +
-                    "  #.......#...#.....#.#.#.#...#...#.#.#.#.#.....#.#.#.....#.......#.#.#...#.#...#.#...#.#.#.#...#.#.#...#...#.....#.#.#  \n" +
-                    "  #.#######.###.###.#######.#####.#.#.#.#.#.###.#.#####.#.#.#######.#######.#.###########.#.###.#.###.###.#########.#.#  \n" +
-                    "  #.#.....#.#.....#...#.#...#...#.#.#.....#.#.......#.#.#.....#...#.#.....#.#.....#...............#.......#.#...#.#...#  \n" +
-                    "  #######.###.#########.###.#.#.#####.#.#####.###.#.#.#####.###.###.#.###.#.#.#####.#.#####.#.###.#########.#.###.#.#.#  \n" +
-                    "  #.............#.......#...#.#.....#.#.#.#.....#.#.#.......#.......#...#.#.#...#.#.#.#.#...#.#.....#.#...........#.#.#  \n" +
-                    "  #.#####.#####.###.###.###########.###.#.###.#.###.###.###.#.#######.#.#.#.#.###.#.###.###.#.#######.#.###.#.#.#####.#  \n" +
-                    "  #...#.....#...#.....#.....................#.#...#.#.....#.#.......#.#.#...#.............#.#.............#.#.#.....#.#  \n" +
-                    "  #######################################.#######.#######.#########.###.#######.#######################################  \n" +
-                    "                                         B       J       R         Q   D       W                                         \n" +
-                    "                                         M       B       K         M   Z       Z                                         ";
+    static List<String> example2 = List.of(
+            "                   A               ",
+            "                   A               ",
+            "  #################.#############  ",
+            "  #.#...#...................#.#.#  ",
+            "  #.#.#.###.###.###.#########.#.#  ",
+            "  #.#.#.......#...#.....#.#.#...#  ",
+            "  #.#########.###.#####.#.#.###.#  ",
+            "  #.............#.#.....#.......#  ",
+            "  ###.###########.###.#####.#.#.#  ",
+            "  #.....#        A   C    #.#.#.#  ",
+            "  #######        S   P    #####.#  ",
+            "  #.#...#                 #......VT",
+            "  #.#.#.#                 #.#####  ",
+            "  #...#.#               YN....#.#  ",
+            "  #.###.#                 #####.#  ",
+            "DI....#.#                 #.....#  ",
+            "  #####.#                 #.###.#  ",
+            "ZZ......#               QG....#..AS",
+            "  ###.###                 #######  ",
+            "JO..#.#.#                 #.....#  ",
+            "  #.#.#.#                 ###.#.#  ",
+            "  #...#..DI             BU....#..LF",
+            "  #####.#                 #.#####  ",
+            "YN......#               VT..#....QG",
+            "  #.###.#                 #.###.#  ",
+            "  #.#...#                 #.....#  ",
+            "  ###.###    J L     J    #.#.###  ",
+            "  #.....#    O F     P    #.#...#  ",
+            "  #.###.#####.#.#####.#####.###.#  ",
+            "  #...#.#.#...#.....#.....#.#...#  ",
+            "  #.#####.###.###.#.#.#########.#  ",
+            "  #...#.#.....#...#.#.#.#.....#.#  ",
+            "  #.###.#####.###.###.#.#.#######  ",
+            "  #.#.........#...#.............#  ",
+            "  #########.###.###.#############  ",
+            "           B   J   C               ",
+            "           U   P   P               ");
 }
