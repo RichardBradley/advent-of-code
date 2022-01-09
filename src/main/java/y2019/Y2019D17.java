@@ -2,9 +2,13 @@ package y2019;
 
 import com.google.common.base.Stopwatch;
 
+import java.awt.*;
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Queue;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
@@ -17,22 +21,139 @@ public class Y2019D17 {
         Stopwatch sw = Stopwatch.createStarted();
 
         // 1
-//        assertThat(getAlignmentParams(example1)).isEqualTo(76);
-//        out.println(getAlignmentParams(runAndPrintPicture(input)));
+        assertThat(getAlignmentParams(example1)).isEqualTo(76);
+        out.println(getAlignmentParams(runAndPrintPicture(input)));
 
         // 2
-        out.println(runAndPrintPicture(input));
-        out.println(findPath(runAndPrintPicture(input)));
-        // assertThat(expandFunc());
-//        out.println(timeToFillWithOxygen(input));
+        String map = runAndPrintPicture(input);
+        out.println(map);
+        String path = findPath(map);
+        out.println(path);
+        String useVideoFeedOut = "n";
+        String prog = compressPathToProg(path) + useVideoFeedOut + "\n";
+        out.println(prog);
+        input[0] = BigInteger.TWO;
+        String out = runAndPrintOutput(input,
+                new ArrayDeque<>(
+                        prog.chars().mapToObj(BigInteger::valueOf).collect(Collectors.toList())));
+        System.out.println(out);
 
-        out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+        System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
+    }
+
+    private static String compressPathToProg(String path) {
+        List<String> subprogs = new ArrayList<>();
+        for (char progName = 'A'; progName <= 'C'; progName++) {
+            String bestSubstr = "";
+            int bestSubstrCoverage = 0;
+            for (int i = 0; i < path.length(); i++) {
+                if (path.charAt(i) == ',') {
+                    continue;
+                }
+                for (int len = 1; len < 20 && i + len < path.length(); len++) {
+                    if (path.charAt(i + len) == ',') {
+                        continue;
+                    }
+                    String sub = path.substring(i, i + len + 1);
+                    int coverage = len * countSubstr(path, sub);
+                    if (coverage > bestSubstrCoverage) {
+                        bestSubstrCoverage = coverage;
+                        bestSubstr = sub;
+                    }
+                }
+            }
+
+            path = path.replaceAll(bestSubstr, Character.toString(progName));
+            subprogs.add(bestSubstr);
+        }
+        return path + "\n" + subprogs.stream().collect(Collectors.joining("\n")) + "\n";
+    }
+
+    public static int countSubstr(String text, String find) {
+        int index = 0, count = 0, length = find.length();
+        while ((index = text.indexOf(find, index)) != -1) {
+            index += length;
+            count++;
+        }
+        return count;
     }
 
     private static String findPath(String map) {
+        // from manual inspection
+        String[] lines = map.split("\n");
+        int height = lines.length;
+        int width = lines[0].length();
+
+        int x = -1, y = -1;
+        outer:
+        for (int yy = 0; yy < lines.length; yy++) {
+            for (int xx = 0; xx < width; xx++) {
+                if (lines[yy].charAt(xx) == '^') {
+                    x = xx;
+                    y = yy;
+                    break outer;
+                }
+            }
+        }
+        checkState(x >= 0);
+
         StringBuilder acc = new StringBuilder();
-        return "qq";
+        acc.append("R");
+
+        int dir = 1; // NESW
+
+        while (true) {
+            // move forwards:
+            int dist = 0;
+            Point nextP = new Point(x + dirs[dir].x, y + dirs[dir].y);
+            char next = get(lines, nextP);
+            while (next == '#') {
+                dist++;
+                x = nextP.x;
+                y = nextP.y;
+                nextP = new Point(x + dirs[dir].x, y + dirs[dir].y);
+                next = get(lines, nextP);
+            }
+
+            checkState(dist > 0);
+            acc.append(",").append(dist);
+
+            Point rightDir = dirs[(dir + 1) % 4];
+            if ('#' == get(lines, new Point(x + rightDir.x, y + rightDir.y))) {
+                acc.append(",R");
+                dir = (dir + 1) % 4;
+                continue;
+            }
+            Point leftDir = dirs[(dir + 3) % 4];
+            if ('#' == get(lines, new Point(x + leftDir.x, y + leftDir.y))) {
+                acc.append(",L");
+                dir = (dir + 3) % 4;
+                continue;
+            }
+
+            break;
+        }
+
+        return acc.toString();
     }
+
+    private static char get(String[] lines, Point p) {
+        if (p.y < 0 || p.y >= lines.length) {
+            return '.';
+        }
+        String line = lines[p.y];
+        if (p.x < 0 || p.x >= line.length()) {
+            return '.';
+        }
+        return line.charAt(p.x);
+    }
+
+    static Point[] dirs = new Point[]{
+            new Point(0, -1),
+            new Point(1, 0),
+            new Point(0, 1),
+            new Point(-1, 0)
+    };
 
     private static int getAlignmentParams(String scaffoldPic) {
         int sum = 0;
@@ -41,10 +162,10 @@ public class Y2019D17 {
             String line = lines[y];
             for (int x = 1; x < line.length() - 1; x++) {
                 if (line.charAt(x) == '#'
-                        && line.charAt(x-1) == '#'
-                        && line.charAt(x+1) == '#'
-                        && lines[y-1].charAt(x) == '#'
-                        && lines[y+1].charAt(x) == '#') {
+                        && line.charAt(x - 1) == '#'
+                        && line.charAt(x + 1) == '#'
+                        && lines[y - 1].charAt(x) == '#'
+                        && lines[y + 1].charAt(x) == '#') {
 
                     sum += x * y;
                 }
@@ -54,17 +175,26 @@ public class Y2019D17 {
     }
 
     private static String runAndPrintPicture(BigInteger[] program) {
+        return runAndPrintOutput(program, new LinkedList<>(Collections.emptyList()));
+    }
+
+    private static String runAndPrintOutput(BigInteger[] program, Queue<BigInteger> inputs) {
         StringBuilder acc = new StringBuilder();
         Y2019D09.ProgramState programState = new Y2019D09.ProgramState(program);
         while (true) {
             Y2019D09.EvalResult evalResult = Y2019D09.evalPartial(
                     programState,
-                    new LinkedList<>(Collections.emptyList()));
+                    inputs);
 
             if (evalResult instanceof Y2019D09.Terminated) {
                 return acc.toString();
             }
-            acc.append((char)((Y2019D09.Output) evalResult).getOutputVal().intValueExact());
+            int i = ((Y2019D09.Output) evalResult).getOutputVal().intValueExact();
+            if (i < Character.MAX_VALUE) {
+                acc.append((char) i);
+            } else {
+                acc.append(i);
+            }
         }
     }
 
