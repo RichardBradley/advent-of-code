@@ -25,8 +25,8 @@ public class Y2022D11 {
         List<String> input = Resources.readLines(Resources.getResource("y2022/Y2022D11.txt"), StandardCharsets.UTF_8);
 
         // 1
-//        assertThat(part1(example)).isEqualTo(10605);
-//        System.out.println(part1(input));
+        assertThat(part1(example)).isEqualTo(10605);
+        System.out.println(part1(input));
 
         // 2
         assertThat(part2(example)).isEqualTo(2713310158L);
@@ -38,54 +38,48 @@ public class Y2022D11 {
     /**
      * What is the level of monkey business after 20 rounds of stuff-slinging simian shenanigans?
      */
-//    private static long part1(List<String> input) {
-//        List<Monkey> monkeys = parse(input);
-//
-//        for (int round = 0; round < 20; round++) {
-//            for (Monkey monkey : monkeys) {
-//                for (Long item : monkey.items) {
-//                    long newWorry = monkey.operation.apply(item) / 3;
-//                    int target = monkey.test.apply(newWorry);
-//                    monkeys.get(target).items.add(newWorry);
-//                    monkey.itemsInspectedCount++;
-//                }
-//                monkey.items.clear();
-//            }
-//        }
-//
-//        return monkeys.stream()
-//                .sorted(Comparator.<Monkey, Integer>comparing(m -> m.itemsInspectedCount).reversed())
-//                .limit(2)
-//                .mapToInt(m -> m.itemsInspectedCount)
-//                .reduce(1, (a,b) -> a*b);
-//    }
-
-    private static long part2(List<String> input) {
+    private static long part1(List<String> input) {
         World world = parse(input);
-        List<Monkey> monkeys = world.monkeys;
-        long modulus = world.modulus;
 
-        for (int round = 0; round < 10000; round++) {
-            for (Monkey monkey : monkeys) {
+        for (int round = 0; round < 20; round++) {
+            for (Monkey monkey : world.monkeys) {
                 for (Long item : monkey.items) {
-                    long newWorry = monkey.operation.apply(item) % modulus;
+                    long newWorry = monkey.operation.apply(item) / 3;
                     int target = monkey.test.apply(newWorry);
-                    monkeys.get(target).items.add(newWorry);
+                    world.monkeys.get(target).items.add(newWorry);
                     monkey.itemsInspectedCount++;
                 }
                 monkey.items.clear();
             }
+        }
 
-            if (round %100 == 0) {
-                System.out.println("round " + round);
+        return world.monkeys.stream()
+                .sorted(Comparator.<Monkey, Integer>comparing(m -> m.itemsInspectedCount).reversed())
+                .limit(2)
+                .mapToInt(m -> m.itemsInspectedCount)
+                .reduce(1, (a, b) -> a * b);
+    }
+
+    private static long part2(List<String> input) {
+        World world = parse(input);
+
+        for (int round = 0; round < 10000; round++) {
+            for (Monkey monkey : world.monkeys) {
+                for (Long item : monkey.items) {
+                    long newWorry = monkey.operation.apply(item) % world.modulus;
+                    int target = monkey.test.apply(newWorry);
+                    world.monkeys.get(target).items.add(newWorry);
+                    monkey.itemsInspectedCount++;
+                }
+                monkey.items.clear();
             }
         }
 
-        return monkeys.stream()
+        return world.monkeys.stream()
                 .sorted(Comparator.<Monkey, Integer>comparing(m -> m.itemsInspectedCount).reversed())
                 .limit(2)
                 .mapToLong(m -> m.itemsInspectedCount)
-                .reduce(1, (a,b) -> a*b);
+                .reduce(1, (a, b) -> a * b);
     }
 
     @Value
@@ -98,7 +92,7 @@ public class Y2022D11 {
         long modulus = 1;
         List<Monkey> acc = new ArrayList<>();
         int idx = 0;
-        while(true) {
+        while (true) {
             checkState(input.get(idx++).equals("Monkey " + acc.size() + ":"));
             Monkey m = new Monkey();
             acc.add(m);
@@ -119,7 +113,7 @@ public class Y2022D11 {
                 long operand = isOld ? 0 : Integer.parseInt(m1.group(2));
                 m.operation = (old -> {
                     long op = isOld ? old : operand;
-                    return isAdd ? old + op : Math.multiplyExact(old , op);
+                    return isAdd ? old + op : Math.multiplyExact(old, op);
                 });
             }
 
