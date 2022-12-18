@@ -33,42 +33,39 @@ public class Y2022D18 {
 
 
     private static int part1(List<String> input) {
-        Set<Point3i> points = new HashSet<>();
-        for (String line : input) {
-            String[] parts = line.split(",");
-            checkState(parts.length == 3);
-            checkState(true == points.add(
-                    new Point3i(
-                            Integer.parseInt(parts[0]),
-                            Integer.parseInt(parts[1]),
-                            Integer.parseInt(parts[2]))));
-        }
+        Set<Point3i> points = parse(input);
 
         // count the number of sides of each cube that
         // are not immediately connected to another cube.
         int surfaceArea = 0;
         for (Point3i p : points) {
-            if (!points.contains(new Point3i(p.x + 1, p.y, p.z))) {
-                surfaceArea++;
-            }
-            if (!points.contains(new Point3i(p.x - 1, p.y, p.z))) {
-                surfaceArea++;
-            }
-            if (!points.contains(new Point3i(p.x, p.y + 1, p.z))) {
-                surfaceArea++;
-            }
-            if (!points.contains(new Point3i(p.x, p.y - 1, p.z))) {
-                surfaceArea++;
-            }
-            if (!points.contains(new Point3i(p.x, p.y, p.z + 1))) {
-                surfaceArea++;
-            }
-            if (!points.contains(new Point3i(p.x, p.y, p.z - 1))) {
-                surfaceArea++;
+            for (Point3i dir : dirs) {
+                if (!points.contains(add(p, dir))) {
+                    surfaceArea++;
+                }
             }
         }
-
         return surfaceArea;
+    }
+
+    private static Point3i add(Point3i x, Point3i y) {
+        Point3i res = (Point3i) x.clone();
+        res.add(y);
+        return res;
+    }
+
+    private static Set<Point3i> parse(List<String> input) {
+        Set<Point3i> points = new HashSet<>();
+        for (String line : input) {
+            String[] parts = line.split(",");
+            checkState(parts.length == 3);
+            checkState(points.add(
+                    new Point3i(
+                            Integer.parseInt(parts[0]),
+                            Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2]))));
+        }
+        return points;
     }
 
     static int minZ, maxZ;
@@ -83,16 +80,7 @@ public class Y2022D18 {
     };
 
     private static int part2(List<String> input) {
-        Set<Point3i> points = new HashSet<>();
-        for (String line : input) {
-            String[] parts = line.split(",");
-            checkState(parts.length == 3);
-            checkState(true == points.add(
-                    new Point3i(
-                            Integer.parseInt(parts[0]),
-                            Integer.parseInt(parts[1]),
-                            Integer.parseInt(parts[2]))));
-        }
+        Set<Point3i> points = parse(input);
 
         minZ = points.stream().mapToInt(p -> p.z).min().getAsInt();
         maxZ = points.stream().mapToInt(p -> p.z).max().getAsInt();
@@ -101,23 +89,10 @@ public class Y2022D18 {
         // are not immediately connected to another cube.
         int surfaceArea = 0;
         for (Point3i p : points) {
-            if (isExternal(points, new Point3i(p.x + 1, p.y, p.z))) {
-                surfaceArea++;
-            }
-            if (isExternal(points, new Point3i(p.x - 1, p.y, p.z))) {
-                surfaceArea++;
-            }
-            if (isExternal(points, new Point3i(p.x, p.y + 1, p.z))) {
-                surfaceArea++;
-            }
-            if (isExternal(points, new Point3i(p.x, p.y - 1, p.z))) {
-                surfaceArea++;
-            }
-            if (isExternal(points, new Point3i(p.x, p.y, p.z + 1))) {
-                surfaceArea++;
-            }
-            if (isExternal(points, new Point3i(p.x, p.y, p.z - 1))) {
-                surfaceArea++;
+            for (Point3i dir : dirs) {
+                if (isExternal(points, add(p, dir))) {
+                    surfaceArea++;
+                }
             }
         }
 
