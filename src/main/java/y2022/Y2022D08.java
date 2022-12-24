@@ -1,17 +1,13 @@
 package y2022;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
 
 import java.awt.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2022D08 {
@@ -31,11 +27,11 @@ public class Y2022D08 {
         System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
     }
 
-    static Point[] dirs = new Point[] {
-            new Point(0 , 1),
-            new Point(0 , -1),
-            new Point(-1 , 0),
-            new Point(1 , 0)
+    static Point[] dirs = new Point[]{
+            new Point(0, 1),
+            new Point(0, -1),
+            new Point(-1, 0),
+            new Point(1, 0)
     };
 
     // how many trees are visible from outside the grid?
@@ -56,10 +52,10 @@ public class Y2022D08 {
                         xx += dir.x;
                         yy += dir.y;
 
-                        if (xx < 0 || xx >= width || yy <0 || yy >= height) {
+                        if (xx < 0 || xx >= width || yy < 0 || yy >= height) {
                             // left boundary, visible
                             visibleCount++;
-                           // System.out.printf("(%s,%s) %s visible\n", x,y, currTree);
+                            // System.out.printf("(%s,%s) %s visible\n", x,y, currTree);
                             continue nextTree;
                         }
                         char otherTree = input.get(yy).charAt(xx);
@@ -69,7 +65,7 @@ public class Y2022D08 {
                         }
                     }
                 }
-               // System.out.printf("(%s,%s) %s not visible\n", x,y, currTree);
+                // System.out.printf("(%s,%s) %s not visible\n", x,y, currTree);
             }
         }
 
@@ -99,11 +95,11 @@ public class Y2022D08 {
             int xx = x;
             int yy = y;
             int treesSeen = 0;
-            while(true) {
+            while (true) {
                 xx += dir.x;
                 yy += dir.y;
 
-                if (xx < 0 || xx >= width || yy <0 || yy >= height) {
+                if (xx < 0 || xx >= width || yy < 0 || yy >= height) {
                     // outside boundary
                     score *= treesSeen;
                     continue dirs;
@@ -117,14 +113,14 @@ public class Y2022D08 {
                 }
             }
         }
-       // System.out.printf("score (%s,%s) %s is %s\n", x,y, currTree, score);
+        // System.out.printf("score (%ás,%s) %s is %s\n", x,y, currTree, score);
         return score;
     }
 
     private static List<String> example = List.of(
             "30373",
-                    "25512",
-                    "65332",
-                    "33549",
-                    "35390");
+            "25512",
+            "65332",
+            "33549",
+            "35390");
 }
