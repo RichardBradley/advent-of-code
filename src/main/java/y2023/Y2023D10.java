@@ -57,11 +57,14 @@ public class Y2023D10 {
                 // incl:  L-7   F-J
                 // excl:  L-J   F-7
                 //
+                // Move the point inspected down by 1/4, so:
+                // incl: F 7
+                // excl: L J
+                //
                 // F-7
                 // | |
                 // L-J
 
-                Character currentAmbigCrossing = null;
                 Point p = new Point(x, y);
                 if (!distances.containsKey(p)) {
                     int crossingCount = 0;
@@ -69,34 +72,8 @@ public class Y2023D10 {
                         Point pp = new Point(xx, y);
                         char cc = get(input, pp, s);
                         if (distances.containsKey(pp)) {
-                            if ('|' == cc) {
+                            if ('|' == cc || 'F' == cc || '7' == cc) {
                                 crossingCount++;
-                            } else if (cc == 'L') {
-                                if (currentAmbigCrossing == '7') {
-                                    crossingCount++;
-                                    currentAmbigCrossing = null;
-                                } else if (currentAmbigCrossing == 'J') {
-                                    currentAmbigCrossing = null;
-                                } else {
-                                    throw new IllegalStateException();
-                                }
-                            } else if (cc == 'F') {
-                                if (currentAmbigCrossing == 'J') {
-                                    crossingCount++;
-                                    currentAmbigCrossing = null;
-                                } else if (currentAmbigCrossing == '7') {
-                                    currentAmbigCrossing = null;
-                                } else {
-                                    throw new IllegalStateException();
-                                }
-                            } else if (cc == '7' || cc == 'J') {
-                                checkState(currentAmbigCrossing == null);
-                                currentAmbigCrossing = cc;
-                            } else if (cc == '-') {
-                                checkState(currentAmbigCrossing != null);
-                            } else {
-                                printMap(input, containedPoints, distances);
-                                throw new IllegalStateException("unexpected: " + cc);
                             }
                         }
                     }
