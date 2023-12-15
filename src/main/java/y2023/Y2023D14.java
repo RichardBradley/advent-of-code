@@ -25,7 +25,7 @@ public class Y2023D14 {
 
             // 2
             assertThat(part2(example)).isEqualTo(64);
-            assertThat(part2(input)).isEqualTo(0);
+            assertThat(part2(input)).isEqualTo(96447);
 
         } finally {
             System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");

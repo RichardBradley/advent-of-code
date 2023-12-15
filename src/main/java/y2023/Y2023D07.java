@@ -28,7 +28,6 @@ public class Y2023D07 {
             assertThat(new Hand("JKKK2", 1, true)).isLessThan(new Hand("QQQQ2", 1, true));
 
             assertThat(part2(example)).isEqualTo(5905);
-            // 243305080 too high
             assertThat(part2(input)).isEqualTo(243101568);
 
         } finally {
