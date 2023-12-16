@@ -34,16 +34,6 @@ public class Y2023D16 {
         }
     }
 
-    private static int hash(String s) {
-        int curr = 0;
-        for (int i = 0; i < s.length(); i++) {
-            curr += s.charAt(i);
-            curr *= 17;
-            curr %= 256;
-        }
-        return curr;
-    }
-
     enum Dirs {
         N, E, S, W;
 
@@ -74,11 +64,7 @@ public class Y2023D16 {
                     || (c == '-' && (dir == Dirs.E || dir == Dirs.W))
                     || (c == '|' && (dir == Dirs.N || dir == Dirs.S))) {
                 Point next = dir.advance(loc);
-                if (isInBounds(next, map)) {
-                    return Collections.singleton(new BeamPos(next, dir));
-                } else {
-                    return Collections.emptyList();
-                }
+                return Collections.singleton(new BeamPos(next, dir));
             } else if (c == '/' || c == '\\') {
                 Dirs newDir;
                 switch (dir) {
@@ -98,33 +84,15 @@ public class Y2023D16 {
                         throw new IllegalStateException();
                 }
                 Point next = newDir.advance(loc);
-                if (isInBounds(next, map)) {
-                    return Collections.singleton(new BeamPos(next, newDir));
-                } else {
-                    return Collections.emptyList();
-                }
+                return Collections.singleton(new BeamPos(next, newDir));
             } else if (c == '|') {
-                List<BeamPos> acc = new ArrayList<>();
-                Point n1 = Dirs.N.advance(loc);
-                if (isInBounds(n1, map)) {
-                    acc.add(new BeamPos(n1, Dirs.N));
-                }
-                Point n2 = Dirs.S.advance(loc);
-                if (isInBounds(n2, map)) {
-                    acc.add(new BeamPos(n2, Dirs.S));
-                }
-                return acc;
+                return List.of(
+                        new BeamPos(Dirs.N.advance(loc), Dirs.N),
+                        new BeamPos(Dirs.S.advance(loc), Dirs.S));
             } else if (c == '-') {
-                List<BeamPos> acc = new ArrayList<>();
-                Point n1 = Dirs.E.advance(loc);
-                if (isInBounds(n1, map)) {
-                    acc.add(new BeamPos(n1, Dirs.E));
-                }
-                Point n2 = Dirs.W.advance(loc);
-                if (isInBounds(n2, map)) {
-                    acc.add(new BeamPos(n2, Dirs.W));
-                }
-                return acc;
+                return List.of(
+                        new BeamPos(Dirs.E.advance(loc), Dirs.E),
+                        new BeamPos(Dirs.W.advance(loc), Dirs.W));
             } else {
                 throw new IllegalStateException();
             }
@@ -157,8 +125,10 @@ public class Y2023D16 {
         while (null != (curr = toVisit.poll())) {
             Collection<BeamPos> nexts = curr.next(input);
             for (BeamPos next : nexts) {
-                if (visited.add(next)) {
-                    toVisit.add(next);
+                if (isInBounds(next.loc, input)) {
+                    if (visited.add(next)) {
+                        toVisit.add(next);
+                    }
                 }
             }
         }
