@@ -34,9 +34,7 @@ public class Y2023D20 {
             assertThat(part1(input)).isEqualTo(1020211150);
 
             // 2
-            // 1020211150 low
-            // 2147483647 low
-            assertThat(part2(input)).isEqualTo(0);
+            assertThat(part2(input)).isEqualTo(238815727638557L);
 
         } finally {
             System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
@@ -191,13 +189,11 @@ public class Y2023D20 {
                 }
             }
 
-            if (outputPulses.size() == 1
-                    && outputPulses.get(0).isHigh) {
-                return buttonPressCount;
+            for (Pulse outputPuls : outputPulses) {
+                if (outputPuls.isHigh) {
+                    return buttonPressCount;
+                }
             }
-//            if (outputPulses.size() > 0 && outputPulses.get(outputPulses.size() - 1).isHigh) {
-//                return buttonPressCount;
-//            }
             System.out.printf("Checking %s, step %s outputs %s\n", targetNode, buttonPressCount, outputPulses);
         }
     }
