@@ -4,6 +4,8 @@ version := "0.1"
 
 scalaVersion := "2.12.8"
 
+javaOptions in run += "-Djava.library.path=lib"
+
 libraryDependencies += "com.google.guava" % "guava" % "19.0"
 libraryDependencies += "com.google.truth" % "truth" % "0.42"
 libraryDependencies += "org.projectlombok" % "lombok" % "1.18.4" % "provided"

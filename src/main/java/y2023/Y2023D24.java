@@ -2,11 +2,13 @@ package y2023;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Resources;
+import com.microsoft.z3.*;
 import lombok.Value;
 import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.fraction.BigFraction;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -68,6 +70,9 @@ public class Y2023D24 {
             for (int j = i + 1; j < hailstones.size(); j++) {
                 Hailstone b = hailstones.get(j);
 
+                // Need to use exact fractions here, as double loses 0.3% accuracy on some pairs,
+                // which is enough to give the wrong answer but probably too large for an "epsilon" comparison
+
                 // Wikipedia
                 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
                 // Given two points on each line
@@ -95,34 +100,9 @@ public class Y2023D24 {
                         }
                     }
                 } catch (MathArithmeticException e) {
+                    // Ignore divide by zero -- those are lines which don't intersect
                     checkState(e.getMessage().equals("denominator must be different from 0"));
                 }
-//
-//                // Wikipedia
-//                // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-//                // Given two points on each line
-//                double x1 = a.position.x;
-//                double y1 = a.position.y;
-//                double x2 = a.position.x + a.velocity.x;
-//                double y2 = a.position.y + a.velocity.y;
-//                double x3 = b.position.x;
-//                double y3 = b.position.y;
-//                double x4 = b.position.x + b.velocity.x;
-//                double y4 = b.position.y + b.velocity.y;
-//
-//                double px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4))
-//                        / ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
-//                double py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4))
-//                        / ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
-//
-//                if (px >= minXY && px <= maxXY
-//                        && py >= minXY && py <= maxXY) {
-//                    // is in future?
-//                    if (((px - a.position.x) / a.velocity.x) > 0
-//                            && ((px - b.position.x) / b.velocity.x) > 0) {
-//                        intersections++;
-//                    }
-//                }
             }
         }
         return intersections;
@@ -147,7 +127,7 @@ public class Y2023D24 {
         return hailstones;
     }
 
-    static long part2(List<String> input) {
+    static long part2_algebra(List<String> input) {
         List<Hailstone> hailstones = parse(input);
 
         // Find X,Y,Z, VX,VY,VZ, T1 ... TN
@@ -181,9 +161,69 @@ public class Y2023D24 {
         //  = (y_4 * VX - y_4 * vx2) * (x_3 - X) + vy_4 * (x_3 - X) - (y_3 * VX - y_3 * vx_3) * (x_4 - X) - vy_3 * (x_4 - X) / ((vx_3 - VX) * (x_4 - X) - (vx_4 - VX)* (x_3 - X))
 
         // Solve for X
-        // x_1 * (y_2 * VX - y_2 * vx2) - X * (y_2 * VX - y_2 * vx2) + x_1 * vy_2 - X * vy_2 - X * (y_1 * VX - y_1 * vx_1) + x_2 * (y_1 * VX - y_1 * vx_1)
+        // ??? got confused / fed up at this point.
 
         return -1;
+    }
+
+    static long part2(List<String> input) {
+        // Find x,y,z, vx,vy,vz, t1 ... tN
+        // so
+        // t1 (shot) = t1 hail1
+        // etc
+
+        com.microsoft.z3.Global.ToggleWarningMessages(true);
+        Log.open("test.log");
+        HashMap<String, String> cfg = new HashMap<>();
+        cfg.put("model", "true");
+        Context ctx = new Context(cfg);
+
+        Solver s = ctx.mkSolver();
+
+        IntExpr x = (IntExpr) ctx.mkConst(ctx.mkSymbol("x"), ctx.getIntSort());
+        IntExpr y = (IntExpr) ctx.mkConst(ctx.mkSymbol("y"), ctx.getIntSort());
+        IntExpr z = (IntExpr) ctx.mkConst(ctx.mkSymbol("z"), ctx.getIntSort());
+        IntExpr vx = (IntExpr) ctx.mkConst(ctx.mkSymbol("vx"), ctx.getIntSort());
+        IntExpr vy = (IntExpr) ctx.mkConst(ctx.mkSymbol("vy"), ctx.getIntSort());
+        IntExpr vz = (IntExpr) ctx.mkConst(ctx.mkSymbol("vz"), ctx.getIntSort());
+
+        List<Hailstone> hailstones = parse(input);
+        for (int i = 0; i < hailstones.size(); i++) {
+            Hailstone h = hailstones.get(i);
+
+            IntExpr ti = (IntExpr) ctx.mkConst(ctx.mkSymbol("t" + i), ctx.getIntSort());
+            // x + ti*vx == x_i + ti * vx_i
+            s.add(ctx.mkEq(
+                    ctx.mkAdd(x, ctx.mkMul(ti, vx)),
+                    ctx.mkAdd(ctx.mkInt(h.position.x), ctx.mkMul(ti, ctx.mkInt(h.velocity.x)))));
+            s.add(ctx.mkEq(
+                    ctx.mkAdd(y, ctx.mkMul(ti, vy)),
+                    ctx.mkAdd(ctx.mkInt(h.position.y), ctx.mkMul(ti, ctx.mkInt(h.velocity.y)))));
+            s.add(ctx.mkEq(
+                    ctx.mkAdd(z, ctx.mkMul(ti, vz)),
+                    ctx.mkAdd(ctx.mkInt(h.position.z), ctx.mkMul(ti, ctx.mkInt(h.velocity.z)))));
+        }
+
+        if (s.check() == Status.SATISFIABLE) {
+            Model m = s.getModel();
+            System.out.println("Solution:");
+            System.out.println("x = " + m.evaluate(x, false));
+            System.out.println("y = " + m.evaluate(y, false));
+            System.out.println("z = " + m.evaluate(z, false));
+            System.out.println("vx = " + m.evaluate(vx, false));
+            System.out.println("vy = " + m.evaluate(vy, false));
+            System.out.println("vz = " + m.evaluate(vz, false));
+
+            return getLong(m, x)
+                    + getLong(m, y)
+                    + getLong(m, z);
+        } else {
+            throw new IllegalStateException("Failed to solve");
+        }
+    }
+
+    private static long getLong(Model m, IntExpr expr) {
+        return ((IntNum) m.evaluate(expr, false)).getInt64();
     }
 
     static List<String> example = List.of(
