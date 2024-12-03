@@ -12,13 +12,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static aoc.Common.loadInputFromResources;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2024D01 {
 
     public static void main(String[] args) throws Exception {
+        List<String> input = loadInputFromResources();
         Stopwatch sw = Stopwatch.createStarted();
-        List<String> input = Resources.readLines(Resources.getResource("y2024/Y2024D01.txt"), StandardCharsets.UTF_8);
 
         // 1
         assertThat(part1(example)).isEqualTo(11);

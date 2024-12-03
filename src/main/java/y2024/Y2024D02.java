@@ -10,13 +10,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static aoc.Common.loadInputFromResources;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2024D02 {
 
     public static void main(String[] args) throws Exception {
+        List<String> input = loadInputFromResources();
         Stopwatch sw = Stopwatch.createStarted();
-        List<String> input = Resources.readLines(Resources.getResource("y2024/Y2024D02.txt"), StandardCharsets.UTF_8);
 
         // 1
         assertThat(part1(example)).isEqualTo(2);
