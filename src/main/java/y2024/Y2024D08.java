@@ -3,7 +3,6 @@ package y2024;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import scala.Int;
 
 import java.awt.*;
 import java.util.*;
