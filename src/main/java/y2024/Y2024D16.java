@@ -66,6 +66,25 @@ public class Y2024D16 {
             acc.add(new State(cost + 1000, new PathLoc(loc.position, (loc.dir + 3) % 4)));
             return acc;
         }
+
+        public List<State> prevSteps() {
+            return List.of(
+                    new State(
+                            cost - 1,
+                            new PathLoc(
+                                    add(loc.position, dirs[(loc.dir + 2) % 4]),
+                                    loc.dir)),
+                    new State(
+                            cost - 1000,
+                            new PathLoc(
+                                    loc.position,
+                                    (loc.dir + 1) % 4)),
+                    new State(
+                            cost - 1000,
+                            new PathLoc(
+                                    loc.position,
+                                    (loc.dir + 3) % 4)));
+        }
     }
 
     private static char get(List<String> map, Point p) {
@@ -120,34 +139,7 @@ public class Y2024D16 {
             Set<Point> pointsOnBestPath) {
 
         pointsOnBestPath.add(curr.loc.position);
-        // continue forward
-        {
-            State prev = new State(
-                    curr.cost - 1,
-                    new PathLoc(
-                            add(curr.loc.position, dirs[(curr.loc.dir + 2) % 4]),
-                            curr.loc.dir));
-            if (Objects.equals(minCostToPoint.get(prev.loc), prev.cost)) {
-                traceToStart(minCostToPoint, prev, pointsOnBestPath);
-            }
-        }
-        // turn left, right
-        {
-            State prev = new State(
-                    curr.cost - 1000,
-                    new PathLoc(
-                            curr.loc.position,
-                            (curr.loc.dir + 1) % 4));
-            if (Objects.equals(minCostToPoint.get(prev.loc), prev.cost)) {
-                traceToStart(minCostToPoint, prev, pointsOnBestPath);
-            }
-        }
-        {
-            State prev = new State(
-                    curr.cost - 1000,
-                    new PathLoc(
-                            curr.loc.position,
-                            (curr.loc.dir + 3) % 4));
+        for (State prev : curr.prevSteps()) {
             if (Objects.equals(minCostToPoint.get(prev.loc), prev.cost)) {
                 traceToStart(minCostToPoint, prev, pointsOnBestPath);
             }
