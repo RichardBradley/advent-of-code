@@ -223,10 +223,6 @@ public class Y2024D17 {
             }
             if (obs.size() > targetSeqIdx &&
                     target.get(targetSeqIdx).equals(obs.get(targetSeqIdx))) {
-                System.out.printf("looking at %s idx, a candidate = %s, obs = %s\n",
-                        targetSeqIdx,
-                        aCand,
-                        obs);
 
                 long recurse = part2(input, aCand, targetSeqIdx - 1);
                 if (recurse > 0) {
