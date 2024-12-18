@@ -176,10 +176,6 @@ public class Y2024D17 {
 
             acc.add((int) (B & 0b111));
 
-            if (acc.size() > 50) {
-                return null;
-            }
-
         } while (A != 0);
 
         return acc;
