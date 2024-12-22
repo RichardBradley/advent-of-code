@@ -2,17 +2,13 @@ package y2024;
 
 import com.google.common.base.Stopwatch;
 import lombok.Value;
-import scala.Int;
 
-import java.net.Inet4Address;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static aoc.Common.loadInputFromResources;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.truth.Truth.assertThat;
 
 public class Y2024D22 {
@@ -38,7 +34,6 @@ public class Y2024D22 {
     private static long part1(List<String> input) {
         long sum = 0L;
         for (int i = 0; i < input.size(); i++) {
-            System.out.printf("part1 %s of %s\n", i, input.size());
             String s = input.get(i);
             long x = Long.parseLong(s);
             long l = nextSecret(x, 2000);
@@ -55,24 +50,16 @@ public class Y2024D22 {
     }
 
     private static long nextSecret(long x) {
-        long a = prune((x * 64) ^ x);
-        long b = prune((a / 32) ^ a);
-        return prune((b * 2048) ^ b);
-    }
-
-    private static long prune(long a) {
-        long ret = a % 16777216;
-        if (ret < 0) {
-            ret += 16777216;
-        }
-        return ret;
+        long a = ((x * 64) ^ x) % 16777216;
+        long b = ((a / 32) ^ a) % 16777216;
+        return ((b * 2048) ^ b) % 16777216;
     }
 
     @Value
     static class FourSeq {
-        int a, b, c, d;
+        byte a, b, c, d;
 
-        public FourSeq next(int x) {
+        public FourSeq next(byte x) {
             return new FourSeq(b, c, d, x);
         }
     }
@@ -81,12 +68,11 @@ public class Y2024D22 {
         Map<FourSeq, Map<Integer, Integer>> seqToMonkeyIdToFirstPrice = new HashMap<>();
 
         for (int monkeyId = 0; monkeyId < input.size(); monkeyId++) {
-            System.out.printf("examining %s of %s\n", monkeyId, input.size());
             long a = Long.parseLong(input.get(monkeyId));
             long b = nextSecret(a);
             long c = nextSecret(b);
             long d = nextSecret(c);
-            FourSeq seq = new FourSeq(0, digitDiff(b, a), digitDiff(c, b), digitDiff(d, c));
+            FourSeq seq = new FourSeq((byte)0, digitDiff(b, a), digitDiff(c, b), digitDiff(d, c));
             long secret = d;
 
             for (int step = 4; step <= 2000; step++) {
@@ -95,7 +81,8 @@ public class Y2024D22 {
                 secret = nextSecret;
 
                 Map<Integer, Integer> monkeyIdToFirstPrice = seqToMonkeyIdToFirstPrice.computeIfAbsent(seq, k -> new HashMap<>());
-                monkeyIdToFirstPrice.putIfAbsent(monkeyId, mod10(nextSecret));
+                long ret = nextSecret % 10;
+                monkeyIdToFirstPrice.putIfAbsent(monkeyId, (int) ret);
             }
         }
 
@@ -107,16 +94,8 @@ public class Y2024D22 {
         return bestBananaCount;
     }
 
-    static int digitDiff(long a, long b) {
-        return mod10(a) - mod10(b);
-    }
-
-    private static int mod10(long a) {
-        long ret = a % 10;
-        if (ret < 0) {
-            ret += 10;
-        }
-        return (int) ret;
+    static byte digitDiff(long a, long b) {
+        return (byte)((a % 10) - (b % 10));
     }
 
     static List<String> example = List.of(
