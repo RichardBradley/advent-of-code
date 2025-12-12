@@ -23,13 +23,16 @@ public class Y2025D10 {
         List<String> input = loadInputFromResources();
         Stopwatch sw = Stopwatch.createStarted();
         try {
-//            // 1
-//            assertThat(part1(example)).isEqualTo(7);
-//            assertThat(part1(input)).isEqualTo(425);
+            // 1
+            assertThat(part1(example)).isEqualTo(7);
+            assertThat(part1(input)).isEqualTo(425);
 
             // 2
+            // Sam's example:
+            assertThat(part2(List.of("[...] (0,1) (0,2) (1,2) {2,2,2}"))).isEqualTo(3);
+
             assertThat(part2(example)).isEqualTo(33);
-            assertThat(part2(input)).isEqualTo(0); // 8564 too low...
+            assertThat(part2(input)).isEqualTo(15883);
 
         } finally {
             System.out.println("Took " + sw.elapsed(TimeUnit.MILLISECONDS) + "ms");
@@ -119,8 +122,7 @@ public class Y2025D10 {
             sumPresses += countMinPressesForTarget(
                     new HashMap<>(),
                     genPossibleButtonPressesByOddsString(target.size(), buttons),
-                    target,
-                    buttons);
+                    target);
         }
         return sumPresses;
     }
@@ -128,7 +130,7 @@ public class Y2025D10 {
     private static Map<String, List<List<List<Integer>>>> genPossibleButtonPressesByOddsString(int width, List<List<Integer>> buttons) {
         Map<String, List<List<List<Integer>>>> acc = new HashMap<>();
         int maxBitmask = 1 << buttons.size();
-        // Include "pressing no buttons" as an option:
+        // include "pressing no buttons" as an option
         for (int bitmask = 0; bitmask < maxBitmask; bitmask++) {
             List<List<Integer>> buttonPressCombo = new ArrayList<>();
             StringBuilder oddsString = new StringBuilder();
@@ -150,8 +152,7 @@ public class Y2025D10 {
     private static long countMinPressesForTarget(
             Map<List<Integer>, Long> minPressesByTargetCache,
             Map<String, List<List<List<Integer>>>> possibleButtonPressesByOddsString,
-            List<Integer> target,
-            List<List<Integer>> buttons) {
+            List<Integer> target) {
         Long cached = minPressesByTargetCache.get(target);
         if (cached != null) {
             return cached;
@@ -161,11 +162,9 @@ public class Y2025D10 {
         // Looking for two targets: odd remainders and N/2 even remainders:
         StringBuilder odds = new StringBuilder();
         int maxTarget = 0;
-        boolean anyOdd = false;
         for (int t : target) {
             if (t % 2 == 1) {
                 odds.append('#');
-                anyOdd = true;
             } else {
                 odds.append('.');
             }
@@ -177,13 +176,11 @@ public class Y2025D10 {
         if (maxTarget == 0) {
             ret = 0;
         } else {
-            // Note that "no buttons pressed" is a valid option here
             List<List<List<Integer>>> possibleButtonPresses =
                     possibleButtonPressesByOddsString.get(odds.toString());
             if (possibleButtonPresses == null) {
                 ret = Long.MAX_VALUE;
             } else {
-
                 long minResult = Long.MAX_VALUE;
                 possibleButtonPresses:
                 for (List<List<Integer>> buttonPressCombo : possibleButtonPresses) {
@@ -202,8 +199,11 @@ public class Y2025D10 {
                         checkState(x % 2 == 0);
                         newTarget.set(i, x / 2);
                     }
-                    long subResult = buttonPressCombo.size() +
-                            2 * countMinPressesForTarget(minPressesByTargetCache, possibleButtonPressesByOddsString, newTarget, buttons);
+                    long recurse = countMinPressesForTarget(minPressesByTargetCache, possibleButtonPressesByOddsString, newTarget);
+                    if (recurse == Long.MAX_VALUE) {
+                        continue;
+                    }
+                    long subResult = buttonPressCombo.size() + 2 * recurse;
                     minResult = Math.min(minResult, subResult);
                 }
                 ret = minResult;
