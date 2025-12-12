@@ -176,6 +176,7 @@ public class Y2025D10 {
         if (maxTarget == 0) {
             ret = 0;
         } else {
+            // Note that "no buttons pressed" is a valid option here
             List<List<List<Integer>>> possibleButtonPresses =
                     possibleButtonPressesByOddsString.get(odds.toString());
             if (possibleButtonPresses == null) {
