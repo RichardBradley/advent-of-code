@@ -128,7 +128,8 @@ public class Y2025D10 {
     private static Map<String, List<List<List<Integer>>>> genPossibleButtonPressesByOddsString(int width, List<List<Integer>> buttons) {
         Map<String, List<List<List<Integer>>>> acc = new HashMap<>();
         int maxBitmask = 1 << buttons.size();
-        for (int bitmask = 1; bitmask < maxBitmask; bitmask++) {
+        // Include "pressing no buttons" as an option:
+        for (int bitmask = 0; bitmask < maxBitmask; bitmask++) {
             List<List<Integer>> buttonPressCombo = new ArrayList<>();
             StringBuilder oddsString = new StringBuilder();
             oddsString.append(".".repeat(width));
@@ -175,13 +176,8 @@ public class Y2025D10 {
         long ret;
         if (maxTarget == 0) {
             ret = 0;
-        } else if (!anyOdd) {
-            ret = 2 * countMinPressesForTarget(
-                    minPressesByTargetCache,
-                    possibleButtonPressesByOddsString,
-                    target.stream().map(t -> t / 2).collect(Collectors.toList()),
-                    buttons);
         } else {
+            // Note that "no buttons pressed" is a valid option here
             List<List<List<Integer>>> possibleButtonPresses =
                     possibleButtonPressesByOddsString.get(odds.toString());
             if (possibleButtonPresses == null) {
